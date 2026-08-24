@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electrical Now — Lead Time &amp; On-Time Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; font-size: 14px; }
+
+.header { background: #1a1a2e; color: #fff; padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 18px; font-weight: 700; }
+.header .sub { font-size: 11px; color: #aab; margin-top: 3px; }
+.badge { background: #2563eb; color: #fff; border-radius: 6px; padding: 4px 12px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+.main { max-width: 1320px; margin: 0 auto; padding: 18px 18px 48px; }
+
+/* Source tabs */
+.source-tabs { display: flex; gap: 0; margin-bottom: 18px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+.src-tab { flex: 1; padding: 12px 0; text-align: center; font-size: 13px; font-weight: 700; cursor: pointer; color: #6b7280; border-bottom: 3px solid transparent; transition: all .15s; user-select: none; }
+.src-tab:hover { background: #f9fafb; color: #374151; }
+.src-tab.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
+.src-tab .tag { font-size: 10px; font-weight: 600; background: #e5e7eb; color: #6b7280; border-radius: 10px; padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
+.src-tab.active .tag { background: #dbeafe; color: #1d4ed8; }
+
+/* KPI */
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+.kpi { background: #fff; border-radius: 10px; padding: 14px 16px; border-top: 3px solid #2563eb; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+.kpi.green { border-color: #16a34a; } .kpi.amber { border-color: #d97706; } .kpi.red { border-color: #dc2626; } .kpi.purple { border-color: #7c3aed; }
+.kpi .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #6b7280; }
+.kpi .val { font-size: 24px; font-weight: 800; margin: 3px 0 2px; color: #1a1a2e; }
+.kpi .hint { font-size: 11px; color: #9ca3af; }
+
+/* Alert */
+.alert { border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 12px; line-height: 1.5; display: none; }
+.alert.show { display: block; }
+.alert.yellow { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+.alert.blue { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+
+/* Filter bar */
+.filter-bar { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 10px; padding: 10px 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.07); flex-wrap: wrap; }
+.filter-bar label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #6b7280; margin-right: 3px; }
+.filter-bar select { border: 1.5px solid #e5e7eb; border-radius: 7px; padding: 6px 28px 6px 10px; font-size: 12px; font-weight: 600; color: #1a1a2e; background: #f9fafb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 8px center; appearance: none; cursor: pointer; min-width: 170px; }
+.filter-bar select:focus { outline: none; border-color: #2563eb; }
+.filter-ctx { font-size: 11px; color: #2563eb; font-weight: 600; margin-left: auto; }
+
+/* Cards */
+.card { background: #fff; border-radius: 10px; padding: 16px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+.card h2 { font-size: 11px; font-weight: 800; color: #374151; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+.card .desc { font-size: 11px; color: #9ca3af; margin-bottom: 12px; }
+.row2 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.insight { background: #eff6ff; border-left: 3px solid #2563eb; border-radius: 0 6px 6px 0; padding: 8px 12px; margin-top: 10px; font-size: 11px; color: #1e40af; line-height: 1.6; }
+.insight.amber { background: #fffbeb; border-color: #d97706; color: #92400e; }
+.insight strong { font-weight: 700; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+th { background: #f3f4f6; font-weight: 700; padding: 6px 9px; text-align: left; color: #374151; border-bottom: 2px solid #e5e7eb; white-space: nowrap; }
+td { padding: 5px 9px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+tr:last-child td { border-bottom: none; }
+.pill { display: inline-block; padding: 2px 7px; border-radius: 12px; font-size: 10.5px; font-weight: 700; }
+.g { background: #dcfce7; color: #15803d; } .a { background: #fef9c3; color: #92400e; } .r { background: #fee2e2; color: #991b1b; }
+
+/* Panel toggle */
+.panel { display: none; }
+.panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Electrical Now — Order Lead Time &amp; On-Time Performance</h1>
+    <div class="sub" id="headerSub">Jan 2025 – Aug 2026 &nbsp;·&nbsp; As of 8/23/2026</div>
+  </div>
+  <div class="badge">Live Analysis</div>
+</div>
+
+<div class="main">
+
+  <!-- Source Tabs -->
+  <div class="source-tabs">
+    <div class="src-tab active" id="tabENOW" onclick="setSource('enow')">
+      Electrical Now (ENOW) <span class="tag">54,172 orders</span>
+    </div>
+    <div class="src-tab" id="tabEC" onclick="setSource('ec')">
+      Electrical.com (eCommerce) <span class="tag">48,018 orders</span>
+    </div>
+    <div class="src-tab" id="tabRTS" onclick="setSource('rts')">
+      RTS Analysis <span class="tag">546 items</span>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="alert blue" id="alertRTS">
+    ℹ️ <strong>RTS (Ready to Ship) Analysis:</strong> 546 Refurbished/Reconditioned items pre-stocked to reduce lead time. P21 revenue: <strong>$2.31M</strong> · NetSuite/EC revenue: <strong>$468K (20%)</strong>. RTS items average <strong>3.5d lead time vs 4.2d</strong> for non-RTS Re-Certified on EC — pre-stocking demonstrably reduces fulfillment time. <strong>353 items</strong> have P21 sales but zero EC sales — a listing and revenue gap worth closing.
+  </div>
+  <div class="alert yellow show" id="alertENOW">
+    ⚠️ <strong>Required Date Note (ENOW):</strong> 82.1% of orders have Required Date = Order Date (same-day target). The share of orders with a future required date has grown from ~3% in early 2025 to ~25–30% by mid-2026, suggesting improving planning. Orders with a future required date averaged 12.9 days lead time.
+  </div>
+  <div class="alert blue" id="alertEC">
+    ℹ️ <strong>Electrical.com data:</strong> 6,569 orders fulfilled by ENOW Santa Fe Springs, ENOW Jacksonville, and ENOW Michigan have been excluded as duplicates. The remaining 48,018 orders are uniquely Electrical.com. ~65–70% of EC orders have a future Estimated Ship Date set (vs. 82% same-day on ENOW), making on-time measurement more meaningful here. <strong>Note:</strong> On-time rate has been declining in 2026 — worth investigating.
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="lbl">Total Orders</div><div class="val" id="kpiOrders">—</div><div class="hint">Jan 2025 – Aug 2026</div></div>
+    <div class="kpi green"><div class="lbl">Shipped / Invoiced</div><div class="val" id="kpiShipped">—</div><div class="hint" id="kpiShippedPct"></div></div>
+    <div class="kpi amber"><div class="lbl">Overall On-Time Rate</div><div class="val" id="kpiOTR">—</div><div class="hint" id="kpiOTRHint"></div></div>
+    <div class="kpi"><div class="lbl">Avg Lead Time</div><div class="val" id="kpiLT">—</div><div class="hint">Order → Invoice date</div></div>
+    <div class="kpi red"><div class="lbl">Avg Days Late</div><div class="val" id="kpiDL">—</div><div class="hint">Late orders only</div></div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div style="display:flex;align-items:center;gap:6px">
+      <label>Location</label>
+      <select id="locSelect" onchange="onFilterChange()"></select>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <label>Category</label>
+      <select id="catSelect" onchange="onFilterChange()"></select>
+    </div>
+    <div class="filter-ctx" id="filterCtx"></div>
+  </div>
+
+  <!-- Monthly Trend + Req Date -->
+  <div class="row2">
+    <div class="card">
+      <h2>Monthly On-Time Rate &amp; Lead Time</h2>
+      <div class="desc" id="trendDesc">On-time = Invoice Date ≤ Required Date &nbsp;·&nbsp; Lead time = Invoice Date − Order Date</div>
+      <div style="position:relative;height:235px"><canvas id="monthlyChart"></canvas></div>
+      <div class="insight" id="trendInsight"></div>
+    </div>
+    <div class="card">
+      <h2 id="reqDateTitle">Required / Estimated Ship Date Set in Future (%)</h2>
+      <div class="desc" id="reqDateDesc">% of orders where target date &gt; order date, by month</div>
+      <div style="position:relative;height:235px"><canvas id="reqDateChart"></canvas></div>
+      <div class="insight" id="reqInsight"></div>
+    </div>
+  </div>
+
+  <!-- ENOW Static Section -->
+  <div class="panel active" id="panelENOW">
+    <div class="card" style="margin-bottom:14px">
+      <h2>ENOW — Performance by Category</h2>
+      <div class="desc">Top 12 categories · full Jan 2025–Aug 2026 (all locations 93–96)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div style="position:relative;height:275px"><canvas id="enowCatOT"></canvas></div>
+        <div style="position:relative;height:275px"><canvas id="enowCatLT"></canvas></div>
+      </div>
+    </div>
+    <div class="row3">
+      <div class="card">
+        <h2>ENOW — Performance by Location</h2>
+        <div class="desc">On-time rate (bars) and avg lead time (line)</div>
+        <div style="position:relative;height:210px"><canvas id="enowLocChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>ENOW — Location Summary</h2>
+        <div class="desc">Shipped orders, Jan 2025–Aug 2026</div>
+        <table>
+          <tr><th>Loc</th><th>Orders</th><th>On-Time %</th><th>Avg LT</th><th>Avg Days Late</th><th>Req Pushed %</th></tr>
+          <tr><td><strong>93</strong> Jacksonville</td><td>23,503</td><td><span class="pill g">82.1%</span></td><td>0.5d</td><td>2.8d</td><td>2.4%</td></tr>
+          <tr><td><strong>94</strong> Los Angeles</td><td>23,218</td><td><span class="pill a">58.1%</span></td><td>4.9d</td><td>8.0d</td><td>21.1%</td></tr>
+          <tr><td><strong>95</strong></td><td>1,553</td><td><span class="pill a">61.1%</span></td><td>2.3d</td><td>5.7d</td><td>0.7%</td></tr>
+          <tr><td><strong>96</strong> Michigan</td><td>5,898</td><td><span class="pill r">36.6%</span></td><td>11.2d</td><td>3.7d</td><td>70.4%</td></tr>
+        </table>
+        <div class="insight" style="margin-top:10px"><strong>Loc 93</strong> (43% of volume) drives overall performance at 82% on-time. <strong>Loc 94</strong> (43% of volume) is the biggest opportunity — similar volume, only 58% on-time. <strong>Loc 96</strong> is specialty/long-lead with 70% future-dated requirements.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <h2>ENOW — Category Detail</h2>
+      <div class="desc">Sorted by on-time rate · full Jan 2025–Aug 2026</div>
+      <table>
+        <tr><th>Category</th><th>Orders</th><th>On-Time %</th><th>Avg LT</th><th>Median LT</th><th>Avg Days Late</th><th>Req Pushed %</th></tr>
+        <tr><td>Circuit Breaker-Molded Case</td><td>35,924</td><td><span class="pill g">74.7%</span></td><td>1.7d</td><td>0d</td><td>5.1</td><td>8.5%</td></tr>
+        <tr><td>Circuit Breaker-Lug Terminal Kit</td><td>1,646</td><td><span class="pill a">63.6%</span></td><td>2.9d</td><td>0d</td><td>5.8</td><td>13.2%</td></tr>
+        <tr><td>Fuse-Low Voltage</td><td>448</td><td><span class="pill a">60.2%</span></td><td>2.7d</td><td>0d</td><td>4.4</td><td>16.3%</td></tr>
+        <tr><td>Circuit Breaker-Rating Plug</td><td>1,384</td><td><span class="pill a">58.7%</span></td><td>4.2d</td><td>1d</td><td>6.5</td><td>22.7%</td></tr>
+        <tr><td>CB-Trip Units &amp; Programmers</td><td>447</td><td><span class="pill a">56.8%</span></td><td>3.0d</td><td>1d</td><td>5.5</td><td>16.3%</td></tr>
+        <tr><td>Circuit Breaker-Part &amp; Accessory</td><td>954</td><td><span class="pill a">56.6%</span></td><td>4.1d</td><td>1d</td><td>6.1</td><td>18.7%</td></tr>
+        <tr><td>Switch-Disconnect</td><td>346</td><td><span class="pill a">56.2%</span></td><td>3.9d</td><td>1d</td><td>5.1</td><td>33.2%</td></tr>
+        <tr><td>Circuit Breaker-Mounting Hardware</td><td>810</td><td><span class="pill r">49.9%</span></td><td>4.7d</td><td>1d</td><td>6.3</td><td>23.3%</td></tr>
+        <tr><td>Motor Control-MCC Bucket</td><td>332</td><td><span class="pill r">48.4%</span></td><td>22.6d</td><td>15d</td><td>5.2</td><td>88.9%</td></tr>
+        <tr><td>None / Other</td><td>6,895</td><td><span class="pill r">46.9%</span></td><td>11.0d</td><td>5d</td><td>8.5</td><td>41.7%</td></tr>
+        <tr><td>Switch-Panel Mount</td><td>595</td><td><span class="pill r">31.0%</span></td><td>9.1d</td><td>7d</td><td>4.9</td><td>67.1%</td></tr>
+        <tr><td>Bus Plug-Fusible</td><td>735</td><td><span class="pill r">23.2%</span></td><td>8.8d</td><td>6d</td><td>4.0</td><td>66.9%</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- EC Static Section -->
+  <div class="panel" id="panelEC">
+    <div class="card" style="margin-bottom:14px">
+      <h2>Electrical.com — Performance by Category</h2>
+      <div class="desc">Top 10 categories · full Jan 2025–Aug 2026 (ENOW-fulfilled orders excluded)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div style="position:relative;height:255px"><canvas id="ecCatOT"></canvas></div>
+        <div style="position:relative;height:255px"><canvas id="ecCatLT"></canvas></div>
+      </div>
+    </div>
+    <div class="row3">
+      <div class="card">
+        <h2>Electrical.com — Performance by Vendor</h2>
+        <div class="desc">Top 10 vendors · on-time rate (bars) and avg lead time (line) · sorted best → worst OTR</div>
+        <div style="position:relative;height:210px"><canvas id="ecLocChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Electrical.com — Vendor Summary</h2>
+        <div class="desc">Top 10 vendors by volume · Jan 2025–Aug 2026 (shipped orders)</div>
+        <table>
+          <tr><th>Vendor</th><th>Orders</th><th>On-Time %</th><th>Avg LT</th><th>Avg Days Late</th></tr>
+          <tr><td>Radwell International US</td><td>24,211</td><td><span class="pill r">50.8%</span></td><td>3.0d</td><td>1.5d</td></tr>
+          <tr><td>P21 – Electrical.com</td><td>6,634</td><td><span class="pill a">64.4%</span></td><td>1.8d</td><td>1.7d</td></tr>
+          <tr><td>ESH: NABCO</td><td>3,664</td><td><span class="pill a">59.6%</span></td><td>1.8d</td><td>1.5d</td></tr>
+          <tr><td>Any Breakers Inc.</td><td>1,345</td><td><span class="pill r">36.0%</span></td><td>2.4d</td><td>1.7d</td></tr>
+          <tr><td>Santa Clara Systems</td><td>1,056</td><td><span class="pill r">27.1%</span></td><td>2.7d</td><td>2.1d</td></tr>
+          <tr><td>ESH: Monster Electrical</td><td>988</td><td><span class="pill a">64.5%</span></td><td>3.2d</td><td>1.4d</td></tr>
+          <tr><td>Radwell International Canada</td><td>944</td><td><span class="pill g">72.1%</span></td><td>3.4d</td><td>1.6d</td></tr>
+          <tr><td>American West Surplus</td><td>554</td><td><span class="pill a">64.8%</span></td><td>2.8d</td><td>1.8d</td></tr>
+          <tr><td>Central Breaker &amp; Control</td><td>517</td><td><span class="pill a">64.1%</span></td><td>2.5d</td><td>1.7d</td></tr>
+          <tr><td>ARCA</td><td>382</td><td><span class="pill g">71.3%</span></td><td>2.9d</td><td>1.5d</td></tr>
+        </table>
+        <div class="insight amber" style="margin-top:10px"><strong>Radwell International US</strong> (51% of all EC orders) is the primary drag at 50.8% on-time. <strong>Santa Clara Systems</strong> and <strong>Any Breakers</strong> are the lowest performers at 27% and 36%. <strong>Radwell Canada</strong> (72%) and <strong>ARCA</strong> (71%) are standouts. Use the Vendor dropdown above to drill into any single supplier's monthly trend.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <h2>Electrical.com — Category Detail</h2>
+      <div class="desc">Sorted by on-time rate · full Jan 2025–Aug 2026</div>
+      <table>
+        <tr><th>Category</th><th>Orders</th><th>On-Time %</th><th>Avg LT</th><th>Avg Days Late</th><th>Est. Ship Date Set %</th></tr>
+        <tr><td>Circuit Breaker</td><td>13,637</td><td><span class="pill a">60.1%</span></td><td>2.6d</td><td>1.7d</td><td>62%</td></tr>
+        <tr><td>Lighting</td><td>904</td><td><span class="pill a">57.5%</span></td><td>3.2d</td><td>1.6d</td><td>84%</td></tr>
+        <tr><td>Other</td><td>2,743</td><td><span class="pill a">58.6%</span></td><td>5.6d</td><td>1.6d</td><td>69%</td></tr>
+        <tr><td>Motor Control</td><td>8,289</td><td><span class="pill a">52.9%</span></td><td>2.6d</td><td>1.6d</td><td>62%</td></tr>
+        <tr><td>Power Supply</td><td>928</td><td><span class="pill a">52.9%</span></td><td>3.3d</td><td>1.5d</td><td>74%</td></tr>
+        <tr><td>Automation</td><td>7,071</td><td><span class="pill a">53.4%</span></td><td>2.9d</td><td>1.5d</td><td>72%</td></tr>
+        <tr><td>Fuse</td><td>4,322</td><td><span class="pill a">53.1%</span></td><td>2.9d</td><td>1.4d</td><td>68%</td></tr>
+        <tr><td>Machine Part</td><td>1,064</td><td><span class="pill a">51.2%</span></td><td>2.5d</td><td>1.5d</td><td>73%</td></tr>
+        <tr><td>Valve</td><td>2,221</td><td><span class="pill a">51.6%</span></td><td>2.2d</td><td>1.5d</td><td>69%</td></tr>
+        <tr><td>Pneumatic</td><td>2,111</td><td><span class="pill r">49.1%</span></td><td>2.4d</td><td>1.4d</td><td>70%</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- RTS Panel -->
+  <div class="panel" id="panelRTS">
+    <!-- RTS KPIs -->
+    <div class="kpi-row" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
+      <div class="kpi purple"><div class="lbl">P21 RTS Revenue</div><div class="val">$2.31M</div><div class="hint">Jan 2025 – Aug 2026</div></div>
+      <div class="kpi green"><div class="lbl">NetSuite (EC) Revenue</div><div class="val">$468K</div><div class="hint">~20% of P21 channel</div></div>
+      <div class="kpi"><div class="lbl">RTS Items w/ EC Sales</div><div class="val">193 / 546</div><div class="hint">353 items not yet on EC</div></div>
+      <div class="kpi green"><div class="lbl">RTS Avg Lead Time</div><div class="val">3.5d</div><div class="hint">vs 4.2d non-RTS Re-Cert</div></div>
+      <div class="kpi amber"><div class="lbl">Lead Time Advantage</div><div class="val">−0.7d</div><div class="hint">Pre-stock = faster fulfillment</div></div>
+    </div>
+
+    <!-- Revenue comparison + Lead time -->
+    <div class="row2" style="margin-bottom:14px">
+      <div class="card">
+        <h2>Monthly Revenue: P21 vs NetSuite (EC)</h2>
+        <div class="desc">P21 = all channels · NetSuite = Electrical.com orders for matching RTS parts</div>
+        <div style="position:relative;height:235px"><canvas id="rtsSalesTrend"></canvas></div>
+        <div class="insight">P21 peaked at <strong>$216K in Jun 2025</strong> and has trended down to ~$80–110K/mo. NetSuite EC revenue is <strong>$468K total (20% of P21)</strong> — low penetration given 546 pre-stocked items. NetSuite picked up in Jul 2026 ($39K), the highest EC month yet.</div>
+      </div>
+      <div class="card">
+        <h2>Avg Lead Time: RTS Items vs Non-RTS Re-Certified (EC)</h2>
+        <div class="desc">Does pre-stocking actually reduce fulfillment time on Electrical.com?</div>
+        <div style="position:relative;height:235px"><canvas id="rtsOTRCompare"></canvas></div>
+        <div class="insight amber">RTS items averaged <strong>1–2d faster</strong> through most of 2025 (blue below gold). That gap has narrowed in 2026 — non-RTS Re-Cert lead times have also improved. Oct 2025 and May–Jul 2026 spikes on RTS side worth investigating (may indicate stock-outs forcing drop-ship).</div>
+      </div>
+    </div>
+
+    <!-- Top items + Opportunity gap -->
+    <div class="row3" style="margin-bottom:14px">
+      <div class="card">
+        <h2>Top 15 RTS Items — P21 vs NetSuite Revenue</h2>
+        <div class="desc">Jan 2025 – Aug 2026 · blue = P21 all channels · green = NetSuite/EC channel</div>
+        <div style="position:relative;height:320px"><canvas id="rtsTopItems"></canvas></div>
+        <div class="insight" style="margin-top:8px">Most high-P21-revenue items have <strong>zero NetSuite sales</strong> — they're selling through P21 channels only. SFLA36AT0250 is the exception ($21K NS vs $91K P21). SKLA36AT0800 has a high NS share ($26K of $35K P21) but a 4.3d lead time despite being RTS.</div>
+      </div>
+      <div class="card">
+        <h2>Top EC Opportunity — RTS Items Not on Electrical.com</h2>
+        <div class="desc">353 items with P21 sales history not yet sold on EC · top 10 by P21 revenue</div>
+        <table style="margin-top:4px">
+          <tr><th>P21 Code</th><th>Description</th><th>P21 Sales</th><th>P21 Qty</th></tr>
+          <tr><td>SB420SGL4GF+</td><td>GE 200A 600V Bus Plug</td><td>$67,600</td><td>4</td></tr>
+          <tr><td>SQDM6BF400</td><td>Sq D Mod 6 400A MCC Bucket</td><td>$42,500</td><td>6</td></tr>
+          <tr><td>BOS14353</td><td>3P 600V 100A Bus Plug</td><td>$38,450</td><td>29</td></tr>
+          <tr><td>QMB367W</td><td>Panel Switch</td><td>$38,360</td><td>5</td></tr>
+          <tr><td>FDPW367</td><td>Single 800A 600V</td><td>$34,965</td><td>7</td></tr>
+          <tr><td>PQ4603G</td><td>3P 4W 600V 30A Bus Plug</td><td>$31,454</td><td>86</td></tr>
+          <tr><td>SB465RG</td><td>3P 4W 600V 400A Bus Plug</td><td>$31,380</td><td>8</td></tr>
+          <tr><td>FVK465RT</td><td>GE FVK465RT Bus Plug 400A</td><td>$23,895</td><td>6</td></tr>
+          <tr><td>CHFUEMPTY6.0</td><td>CH Freedom MCC Bucket 72"</td><td>$22,200</td><td>6</td></tr>
+          <tr><td>SB465RGR</td><td>600V Bus Plug</td><td>$20,985</td><td>6</td></tr>
+        </table>
+        <div class="insight amber" style="margin-top:8px">These items sell well through P21 channels. Getting them listed as Re-Certified on Electrical.com could drive incremental ecommerce revenue with <strong>faster fulfillment</strong> (already pre-stocked).</div>
+      </div>
+    </div>
+
+    <!-- RTS EC detail table -->
+    <div class="card" style="margin-bottom:14px">
+      <h2>Top RTS Items Selling on Electrical.com — Revenue &amp; Lead Time</h2>
+      <div class="desc">193 RTS items with at least one EC order · sorted by EC orders</div>
+      <table>
+        <tr><th>Part (Base)</th><th>EC Orders</th><th>NetSuite Rev</th><th>Avg Lead Time</th><th>P21 Description</th><th>P21 Revenue</th></tr>
+        <tr><td>SFLA36AT0250</td><td>12</td><td>$21,101</td><td><span class="pill g">1.8d</span></td><td>3P-600V-250A CB</td><td>$91,342</td></tr>
+        <tr><td>EDB34050</td><td>9</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>FXD63B200</td><td>7</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>KA36200</td><td>7</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>SELA36AT0060</td><td>7</td><td>$7,833</td><td><span class="pill a">3.1d</span></td><td>3P-600V-60A CB</td><td>$22,705</td></tr>
+        <tr><td>EDB34070</td><td>6</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>PQ3610G</td><td>6</td><td>$12,382</td><td><span class="pill r">5.6d</span></td><td>3P 600V 100A Bus Plug</td><td>$29,845</td></tr>
+        <tr><td>SEDA36AT0060</td><td>6</td><td>$2,525</td><td><span class="pill g">1.8d</span></td><td>—</td><td>—</td></tr>
+        <tr><td>SELA36AT0100</td><td>6</td><td>$1,636</td><td><span class="pill g">1.3d</span></td><td>3P-600V-100A CB</td><td>$24,980</td></tr>
+        <tr><td>SKLA36AT0800</td><td>4</td><td>$25,573</td><td><span class="pill a">4.3d</span></td><td>3P-600V-800A CB</td><td>$35,150</td></tr>
+      </table>
+      <div class="insight" style="margin-top:8px">PQ3610G and SGLA36AT0600 have elevated lead times (5–13d) despite being RTS — suggest verifying stock availability. SELA36AT0100 and SFLA36AT0250 are the strongest performers: fast lead time and solid EC revenue.</div>
+    </div>
+    <!-- RTS Gap Analysis Section -->
+    <div id="gapSection" style="margin-top:6px">
+      <div style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 100%);border-radius:10px;padding:14px 18px;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:700;color:#a5b4fc;letter-spacing:.5px;margin-bottom:4px">🔍 RTS GAP ANALYSIS — Non-RTS Recon Items with Quote Demand (Jan–Aug 2026)</div>
+        <div style="font-size:12px;color:#818cf8">Items with -PT demand in the quotes report that are NOT on the current RTS list · Identifies candidates for future RTS additions</div>
+      </div>
+      <div class="kpi-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+        <div class="kpi purple"><div class="lbl">Non-RTS Parts w/ Demand</div><div class="val">3,307</div><div class="hint">unique -PT parts quoted</div></div>
+        <div class="kpi amber"><div class="lbl">Total Quoted Value</div><div class="val">$30.6M</div><div class="hint">open quotes Jan–Aug 2026</div></div>
+        <div class="kpi green"><div class="lbl">Confirmed Sales</div><div class="val">$549K</div><div class="hint">PO# confirmed orders</div></div>
+        <div class="kpi"><div class="lbl">Quote-to-Sale Conversion</div><div class="val">1.8%</div><div class="hint">opportunity if stocked</div></div>
+      </div>
+      <div class="row2" style="margin-bottom:14px">
+        <div class="card">
+          <h2>Top 15 RTS Candidates — Total Demand Value</h2>
+          <div class="desc">Top 15 non-RTS -PT items by open quote value · orange = open quotes · green = confirmed sales on top</div>
+          <div style="position:relative;height:310px"><canvas id="gapTopItems"></canvas></div>
+          <div class="insight amber">Bus plugs dominate the opportunity list. <strong>ITAP366</strong> (CH 600A Fusible Bus Plug) alone has $2.4M in open quotes from <strong>16 unique customers</strong> — the strongest signal of stocking opportunity. <strong>IBPLD3600</strong>, <strong>AC464RG</strong>, and <strong>ADS36800LB</strong> also show multi-customer demand.</div>
+        </div>
+        <div class="card">
+          <h2>Demand by Category</h2>
+          <div class="desc">Total quoted value for non-RTS -PT items by product category</div>
+          <div style="position:relative;height:310px"><canvas id="gapByCat"></canvas></div>
+          <div class="insight">Bus Plug-Fusible leads at <strong>$8.8M</strong>, followed by uncategorized items and Bus Plug-Breaker Type. Circuit Breakers (Molded Case + Insulated Case) represent $6.6M combined — a natural extension of the existing RTS CB lineup.</div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Top 50 RTS Addition Candidates — Detail Table</h2>
+        <div class="desc">Only items with open -PT quotes · sorted by total quoted value desc · <span style="color:#4ade80">●</span> also has confirmed 2026 sales</div>
+        <div style="overflow-x:auto;max-height:480px;overflow-y:auto">
+          <table id="gapTable">
+            <thead style="position:sticky;top:0;background:#1e293b;z-index:1">
+              <tr>
+                <th>Part</th><th>Description</th><th>Category</th>
+                <th>Quoted $</th><th>Quotes</th><th>Customers</th>
+                <th title="Confirmed -PT sales from P21 orders YTD">PT Sales (P21)</th><th>Lines</th><th title="Confirmed New/New Surplus sales from P21 orders YTD">New/SUR Sales (P21)</th>
+              </tr>
+            </thead>
+            <tbody id="gapTableBody"></tbody>
+          </table>
+        </div>
+        <div class="insight" style="margin-top:10px"><strong>Tier 1 (already selling):</strong> SEF362500LSG, PCG33000F, PXF361600G show confirmed sales with additional quote demand — easiest wins to pre-stock. <strong>Tier 2 (quote-only, multi-customer):</strong> ITAP366, IBPLD3600, PTQ36120GH have 5–16 customers quoting — broad demand signals genuine stocking opportunity with faster fulfillment potential.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Monthly Table -->
+  <div class="card" id="monthlyTableCard" style="display:block">
+    <h2 id="monthlyTableTitle">Monthly Detail</h2>
+    <div class="desc" id="monthlyTableDesc"></div>
+    <div id="monthlyTableWrap"></div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:8px">* Aug 2026 is a partial month through 8/21–8/24</div>
+  </div>
+
+</div>
+
+<script>
+// ─── ENOW DATA ────────────────────────────────────────────────────────────
+const ENOW = {
+  months: ["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08"],
+  all: {on_time_rate:[62.4,63.5,62.4,65.5,68.2,59.8,59.7,61.6,65.2,69.7,64.5,64.7,68.2,71.8,68.6,69.9,70.4,68.9,69.5,77.1],avg_lead_time:[3.2,2.7,4.5,3.7,3.2,4.2,4.0,3.8,3.7,4.1,4.2,5.5,3.6,3.1,4.4,4.1,3.3,3.2,2.3,1.2],avg_days_late:[8.0,6.4,9.2,8.1,7.2,7.9,6.2,6.4,5.4,5.7,4.4,6.5,3.9,3.3,4.7,4.9,4.3,4.1,3.3,2.2],req_pushed_pct:[3.3,1.7,2.6,2.6,4.3,9.7,11.9,11.8,22.9,20.7,22.8,24.2,27.9,30.1,30.0,29.6,27.9,24.9,24.1,25.7],total_orders:[2593,2422,2539,2781,2482,3170,3319,3072,2991,3133,2361,2454,2469,2568,2750,2431,2432,2973,3111,2121],shipped:[2369,2273,2354,2579,2307,2968,3045,2886,2824,2944,2216,2293,2311,2375,2605,2274,2299,2783,2862,1749],on_time:[1478,1444,1466,1690,1573,1772,1819,1773,1840,2053,1427,1484,1577,1702,1788,1589,1616,1917,1987,1341],late:[891,829,885,889,734,1193,1226,1105,982,891,787,808,734,670,817,685,680,866,874,399]},
+  by_location: {
+    "93":{on_time_rate:[79.0,80.8,80.1,81.9,86.4,80.6,82.1,76.9,83.5,85.0,81.7,81.0,77.6,82.4,83.1,84.9,83.8,83.7,83.7,85.2],avg_lead_time:[0.5,0.5,0.8,0.4,0.4,0.6,0.7,0.6,0.5,0.4,0.7,0.5,0.5,0.6,0.6,0.4,0.4,0.5,0.5,0.3],avg_days_late:[4.0,2.5,4.0,2.3,2.7,3.5,3.7,2.6,2.7,2.6,1.9,2.4,2.0,2.9,2.9,2.1,2.2,3.0,2.5,1.8],req_pushed_pct:[2.5,0.7,0.6,0.4,1.0,0.5,4.6,1.5,2.7,2.0,1.7,3.4,3.3,3.7,6.6,3.6,2.4,2.6,2.3,2.6],total_orders:[1178,1193,1158,1361,1139,1425,1391,1437,1237,1224,863,959,972,1077,1087,1021,1062,1407,1355,957],shipped:[1067,1120,1076,1243,1064,1354,1255,1354,1162,1143,810,891,923,1014,1044,966,1025,1321,1260,896],on_time:[843,905,859,1018,919,1090,1030,1035,969,971,661,721,716,834,868,820,857,1106,1054,756],late:[224,215,214,225,145,262,225,311,191,172,148,169,207,178,176,146,166,215,205,131]},
+    "94":{on_time_rate:[44.3,47.7,39.7,47.6,49.3,45.1,45.9,51.9,59.5,66.6,61.7,62.5,70.0,71.7,66.1,67.9,67.6,63.4,66.0,71.2],avg_lead_time:[6.0,5.0,8.0,5.7,4.8,6.0,4.8,5.5,4.7,4.4,4.9,7.5,3.7,3.7,5.9,4.8,3.9,4.2,2.8,1.6],avg_days_late:[9.9,9.2,11.6,10.2,9.1,10.5,7.8,9.4,7.3,8.0,5.9,9.3,5.8,3.8,5.9,6.8,6.3,5.3,4.0,2.7],req_pushed_pct:[4.9,2.5,4.3,3.5,3.6,2.6,4.1,9.1,28.5,21.3,23.5,27.4,32.0,40.7,35.9,39.8,40.4,35.2,31.2,35.6],total_orders:[1088,880,1044,1113,1018,1334,1500,1274,1354,1440,1112,1121,1090,1132,1253,1039,1041,1169,1345,871],shipped:[1004,824,972,1046,943,1224,1380,1186,1275,1350,1030,1044,1000,1016,1172,965,955,1079,1210,673],on_time:[445,393,386,498,465,551,634,616,759,899,635,652,700,728,775,655,645,684,798,479],late:[559,431,586,548,478,672,746,570,516,451,395,392,300,287,397,310,309,395,412,194]},
+    "95":{on_time_rate:[63.5,45.2,72.9,57.5,69.7,50.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],avg_lead_time:[2.4,2.1,1.0,4.1,1.9,1.4,0,0,0,0,0,0,0,0,0,0,0,0,0,0],avg_days_late:[6.5,3.8,3.8,9.3,5.5,2.8,0,0,0,0,0,0,0,0,0,0,0,0,0,0],req_pushed_pct:[0.6,0.3,0.0,1.4,1.5,0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],total_orders:[325,339,322,283,261,23,0,0,0,0,0,0,0,0,0,0,0,0,0,0],shipped:[296,323,291,266,244,18,0,0,0,0,0,0,0,0,0,0,0,0,0,0],on_time:[188,146,212,153,170,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0],late:[108,177,79,113,74,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},
+    "96":{on_time_rate:[100,0,60.0,87.5,33.9,32.8,37.8,35.3,28.9,40.6,34.9,31.0,41.5,40.6,37.3,33.2,35.7,33.2,34.4,58.9],avg_lead_time:[142.0,138.3,109.5,79.1,33.4,11.1,11.1,10.3,10.0,12.2,9.8,12.4,10.4,9.2,10.3,12.4,10.6,9.7,6.7,3.8],avg_days_late:[0,20.7,27.0,17.0,4.9,5.5,3.4,4.1,3.6,3.8,3.5,4.8,3.2,2.9,3.8,3.9,2.9,3.1,2.7,1.9],req_pushed_pct:[100,100,100,100,85.9,68.3,63.1,62.6,66.8,67.4,68.1,68.2,75.4,75.5,73.9,72.2,70.5,73.8,73.0,71.7],total_orders:[2,10,15,24,64,388,428,361,400,469,386,374,407,359,410,371,329,397,411,293],shipped:[2,6,15,24,56,372,410,346,387,451,376,358,388,345,389,343,319,383,392,180],on_time:[2,0,9,21,19,122,155,122,112,183,131,111,161,140,145,114,114,127,135,106],late:[0,6,6,3,37,250,255,224,275,268,244,247,227,205,244,229,205,256,257,74]}
+  },
+  by_category: {
+    "Circuit Breaker-Molded Case":{on_time_rate:[69.8,72.7,69.1,71.0,75.3,69.6,69.7,70.9,75.3,78.4,73.7,74.8,76.0,80.2,77.4,79.1,79.3,76.5,77.8,82.3],avg_lead_time:[1.8,1.6,2.4,1.9,1.6,2.3,1.8,1.8,1.6,1.6,1.7,2.6,1.4,1.3,1.6,1.7,1.4,1.6,1.2,0.6],avg_days_late:[6.4,5.7,7.5,6.3,6.0,7.1,5.6,5.4,4.1,5.0,4.1,5.0,3.3,3.2,3.9,4.4,4.3,4.1,3.3,2.0],req_pushed_pct:[1.2,1.0,0.9,1.2,1.3,1.7,3.5,3.6,13.6,9.5,11.3,12.6,14.3,16.5,16.4,15.3,14.2,13.2,13.4,14.0],total_orders:[1842,1696,1832,2024,1786,2117,2120,2073,1994,2009,1538,1561,1588,1586,1711,1528,1575,1919,2018,1407],shipped:[1728,1609,1750,1930,1706,2024,2007,1985,1910,1929,1458,1501,1514,1511,1652,1469,1521,1844,1923,1253],on_time:[1207,1169,1209,1370,1285,1407,1399,1404,1437,1513,1074,1122,1150,1210,1278,1162,1204,1411,1496,1024],late:[521,440,540,560,421,615,608,577,471,416,383,378,364,298,374,307,314,433,426,220]},
+    "None/Other":{on_time_rate:[40.4,36.1,36.2,45.0,43.9,35.2,37.5,38.5,37.8,51.4,47.5,48.7,54.3,59.2,54.9,53.6,50.9,55.3,52.2,62.7],avg_lead_time:[7.4,7.5,18.4,13.9,14.2,12.9,13.9,11.4,12.3,13.7,12.0,14.3,10.7,7.6,12.3,11.2,8.5,8.7,5.2,2.9],avg_days_late:[10.7,9.4,14.4,15.3,11.3,10.6,10.3,8.3,8.9,8.7,4.9,9.5,5.4,3.9,6.8,6.3,6.5,6.1,3.6,2.9],req_pushed_pct:[7.1,5.0,10.5,9.0,23.0,36.3,32.4,38.5,53.7,50.7,58.7,50.8,62.2,57.4,57.2,63.2,60.5,49.7,44.7,42.6],total_orders:[338,320,276,289,261,419,401,353,350,408,298,368,347,406,409,361,304,324,407,256],shipped:[302,288,221,240,212,359,341,312,304,354,276,310,304,341,368,319,265,262,341,166],on_time:[122,104,80,108,93,126,128,120,115,182,131,151,165,202,202,171,135,145,178,104],late:[180,184,141,132,119,232,213,192,189,172,145,159,139,139,166,148,130,117,163,62]},
+    "Circuit Breaker-Lug Terminal Kit":{on_time_rate:[50.0,67.2,53.8,61.5,66.7,56.4,55.2,46.3,70.9,74.4,62.7,55.4,63.3,66.7,61.1,68.2,75.4,71.1,79.2,77.5],avg_lead_time:[6.3,1.6,6.1,3.1,2.8,2.9,2.5,4.3,1.7,3.9,2.6,4.6,2.6,3.4,3.2,2.1,1.8,1.4,0.7,0.7],avg_days_late:[9.3,4.8,13.0,7.9,8.0,6.7,5.6,5.8,4.1,6.3,5.2,6.7,3.4,3.1,3.9,3.5,2.2,2.2,2.1,3.0],req_pushed_pct:[3.1,1.5,1.6,1.1,3.5,1.2,3.1,8.4,17.6,10.1,11.4,21.4,20.6,34.7,28.0,34.2,28.1,18.4,14.1,21.6],total_orders:[98,67,64,95,85,83,129,95,85,99,79,70,68,75,75,76,64,103,85,51],shipped:[82,61,53,78,75,78,116,85,79,86,67,65,60,66,72,66,57,90,72,40],on_time:[41,41,28,48,50,44,64,38,56,64,42,36,38,44,44,45,43,64,57,31],late:[41,20,24,30,25,34,52,44,23,22,25,29,22,22,28,21,14,26,15,9]},
+    "Bus Plug-Fusible":{on_time_rate:[33.3,5.9,0.0,20.0,0.0,32.6,33.9,35.6,20.9,21.2,20.0,6.9,20.0,34.4,21.9,28.0,27.7,18.2,18.0,23.5],avg_lead_time:[10.2,3.1,10.6,2.4,10.1,7.1,7.5,7.0,6.5,7.4,7.5,15.7,8.8,9.8,11.3,15.0,12.1,12.2,7.8,5.6],avg_days_late:[15.2,3.3,10.6,2.8,3.6,6.8,5.3,3.4,3.9,2.2,3.5,4.9,2.2,3.4,3.9,6.2,3.8,4.0,3.0,2.6],req_pushed_pct:[0.0,0.0,0.0,20.0,50.0,49.0,67.2,59.6,51.1,73.6,75.0,82.8,76.7,74.3,73.7,81.2,78.8,84.1,80.4,86.4],total_orders:[6,34,7,5,8,49,67,52,45,53,36,29,43,35,38,32,52,44,56,44],shipped:[6,34,7,5,7,43,62,45,43,52,35,29,40,32,32,25,47,44,50,17],on_time:[2,2,0,1,0,14,21,16,9,11,7,2,8,11,7,7,13,8,9,4],late:[4,32,7,4,7,29,41,29,34,41,28,27,32,21,25,18,34,36,41,13]},
+    "Switch-Panel Mount":{on_time_rate:[20.0,3.4,21.4,20.0,20.0,4.0,23.3,15.2,20.7,42.9,10.0,20.0,58.3,31.2,44.4,47.4,35.3,40.0,57.7,58.3],avg_lead_time:[4.0,2.8,3.9,5.2,6.4,12.6,5.7,12.2,8.0,7.7,14.8,12.0,8.5,11.8,11.7,14.9,6.4,8.1,6.3,5.0],avg_days_late:[3.8,2.9,5.0,6.5,5.6,8.5,2.5,7.1,4.4,3.1,4.3,5.4,4.4,3.5,11.6,7.6,1.9,2.8,2.6,1.7],req_pushed_pct:[16.7,0.0,0.0,0.0,16.7,57.7,57.6,65.7,75.0,64.3,87.5,86.7,88.9,91.2,78.0,75.6,70.6,82.9,79.3,88.5],total_orders:[6,29,14,12,18,26,33,35,32,42,32,45,27,34,41,45,34,35,29,26],shipped:[5,29,14,10,15,25,30,33,29,42,30,40,24,32,36,38,34,35,26,24],on_time:[1,1,3,2,3,1,7,5,6,18,3,8,14,10,16,18,12,14,15,14],late:[4,28,11,8,12,24,23,28,23,24,27,32,10,22,20,20,22,21,11,10]},
+    "Motor Control-MCC Bucket":{on_time_rate:[0,0,0,28.6,50.0,38.5,57.1,21.4,37.5,66.7,41.7,60.0,61.9,58.3,63.0,35.0,50.0,53.6,40.7,55.6],avg_lead_time:[17.3,37.5,11.0,44.7,23.0,17.2,55.4,30.9,30.1,25.0,15.2,31.1,15.2,8.2,21.8,23.1,27.8,16.5,15.9,7.2],avg_days_late:[17.3,7.0,11.0,9.8,4.0,5.0,3.8,4.5,2.6,4.0,5.9,15.0,2.6,1.8,5.5,5.4,5.1,4.1,3.6,1.8],req_pushed_pct:[0.0,25.0,0.0,42.9,50.0,81.2,100,71.4,87.5,100,66.7,93.3,95.2,91.7,88.9,90.5,100,96.5,100,89.5],total_orders:[3,4,2,7,2,16,14,14,8,12,12,15,21,12,27,21,36,57,30,19],shipped:[3,4,2,7,2,13,14,14,8,12,12,15,21,12,27,20,36,56,27,9],on_time:[0,0,0,2,1,5,8,3,3,8,5,9,13,7,17,7,18,30,11,5],late:[3,4,2,5,1,8,6,11,5,4,7,6,8,5,10,13,18,26,16,4]}
+  },
+  locations: ["93","94","95","96"],
+  categories: ["Circuit Breaker-Molded Case","None/Other","Circuit Breaker-Lug Terminal Kit","Bus Plug-Fusible","Switch-Panel Mount","Motor Control-MCC Bucket"]
+};
+
+// ─── EC DATA ──────────────────────────────────────────────────────────────
+const EC = {"months":["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08"],"all":{"on_time_rate":[67.2,66.6,68.8,61.9,71.9,62.4,56.0,55.9,55.7,58.8,53.6,37.3,62.9,49.5,47.3,51.8,52.2,40.6,43.5,41.8],"avg_lead_time":[3.1,3.4,3.1,2.7,2.6,3.0,2.7,3.1,2.8,2.9,3.0,3.3,3.1,3.5,3.0,2.8,2.8,3.0,2.9,2.6],"avg_days_late":[1.8,1.6,1.4,1.5,2.0,1.6,1.4,1.6,1.6,1.7,1.6,1.7,1.5,1.5,1.5,1.6,1.8,1.6,1.5,1.5],"req_pushed_pct":[57.7,64.0,63.3,67.1,67.8,66.8,67.7,70.4,64.8,68.2,69.2,67.8,73.4,71.5,68.5,66.6,68.3,64.6,69.5,68.4],"total_orders":[2496,2453,2270,2583,2425,2383,2965,2578,2543,2566,1872,2188,2298,2265,2146,2146,2331,2680,2859,1971],"shipped":[2398,2326,2176,2463,2325,2274,2834,2467,2433,2440,1798,2101,2195,2164,2052,2042,2225,2573,2726,1704],"on_time":[1388,1434,1402,1450,1595,1338,1517,1333,1309,1389,922,743,1329,1025,919,997,1102,1016,1148,675],"late":[679,720,635,893,624,805,1192,1053,1040,972,799,1250,783,1046,1023,928,1010,1486,1493,938]},"by_location":{"Radwell International US":{"on_time_rate":[65.3,55.3,57.5,49.1,66.4,56.3,47.5,48.9,46.2,49.3,52.1,38.1,59.0,50.0,44.8,45.6,50.7,38.8,47.8,45.9],"avg_lead_time":[3.2,3.1,3.1,2.9,2.6,2.6,3.0,3.1,2.7,2.9,2.8,3.5,3.2,3.3,3.0,2.8,2.7,2.9,2.9,2.6],"avg_days_late":[1.3,1.6,1.3,1.4,1.3,1.5,1.4,1.6,1.6,1.5,1.4,1.6,1.5,1.4,1.5,1.6,1.5,1.4,1.4,1.5],"req_pushed_pct":[62.4,68.2,68.3,72.3,74.8,72.9,74.2,75.1,69.9,74.7,78.0,76.2,81.8,79.0,75.8,72.6,75.4,70.4,77.0,73.4],"total_orders":[1293,1294,1223,1448,1383,1430,1590,1451,1325,1330,951,1196,1283,1216,1094,1081,1140,1366,1398,942],"shipped":[1225,1223,1164,1383,1320,1359,1526,1389,1274,1254,914,1149,1227,1166,1040,1025,1101,1316,1347,809],"on_time":[742,650,650,663,850,741,710,670,577,605,464,421,706,562,441,436,526,496,628,361],"late":[394,525,480,687,431,574,785,699,672,623,426,683,491,563,543,521,512,784,687,426]},"P21 - Electrical.com":{"on_time_rate":[62.6,79.6,85.4,85.1,90.5,80.2,73.1,75.3,73.7,78.6,58.7,34.7,66.3,37.6,40.9,57.1,58.8,53.0,48.9,49.4],"avg_lead_time":[1.8,1.9,1.1,1.6,2.0,1.5,1.4,2.1,1.6,1.9,2.1,2.1,1.7,1.9,1.7,1.8,1.9,2.1,2.1,1.9],"avg_days_late":[2.7,1.6,1.4,1.6,1.6,3.3,1.3,1.8,1.6,2.1,2.0,1.4,1.5,1.5,1.4,1.6,1.8,1.7,1.6,1.6],"req_pushed_pct":[38.4,51.8,48.9,53.6,46.5,47.3,45.5,59.6,49.4,56.0,55.8,49.5,56.1,53.4,52.1,53.4,59.9,57.9,58.2,62.4],"total_orders":[359,390,321,435,303,328,437,374,350,343,258,295,326,326,336,348,352,406,438,362],"shipped":[345,371,302,408,286,315,407,351,328,324,239,277,298,308,313,330,324,377,409,322],"on_time":[147,242,216,325,237,219,266,253,230,242,135,90,191,114,122,178,183,197,193,152],"late":[88,62,37,57,25,54,98,83,82,66,95,169,97,189,176,134,128,175,202,156]},"Electrical Source Holdings : NABCO":{"on_time_rate":[69.8,87.7,83.7,78.6,76.7,74.1,65.1,68.8,70.5,73.1,63.3,29.5,78.6,58.2,46.4,64.2,50.2,23.6,35.0,21.4],"avg_lead_time":[1.2,2.0,1.5,1.2,1.5,2.2,1.7,1.7,1.5,1.5,1.8,1.8,1.5,2.0,2.0,1.3,2.0,2.1,2.1,2.2],"avg_days_late":[1.7,2.3,2.0,1.9,1.5,1.8,1.1,1.3,2.0,1.7,1.5,1.3,1.6,1.7,1.4,1.7,1.4,1.6,1.4,1.4],"req_pushed_pct":[29.7,41.4,39.2,41.7,46.3,42.7,60.1,49.7,46.7,54.7,55.3,54.2,56.2,49.7,56.5,56.4,56.5,41.0,52.5,56.6],"total_orders":[185,191,186,156,203,131,208,155,184,192,170,155,208,165,193,179,216,212,278,212],"shipped":[185,184,182,155,202,124,202,151,179,186,166,151,202,158,192,173,211,210,269,182],"on_time":[90,143,139,103,145,86,125,99,122,133,95,43,151,82,85,104,104,48,89,36],"late":[39,20,27,28,44,30,67,45,51,49,55,103,41,59,98,58,103,155,165,132]},"Any Breakers Inc.":{"on_time_rate":[41.7,50.0,60.0,43.8,36.7,41.2,47.6,60.6,36.9,44.9,50.0,35.2,38.3,35.3,38.7,36.8,29.9,20.8,14.4,19.4],"avg_lead_time":[4.1,1.7,1.9,2.1,2.3,3.5,2.1,2.8,1.6,1.7,2.4,2.2,2.6,1.6,2.4,2.2,2.4,2.5,2.7,3.0],"avg_days_late":[3.1,1.0,2.1,1.2,1.2,1.4,1.4,1.3,1.5,1.5,1.9,3.4,2.3,1.3,1.7,1.7,1.6,1.5,1.4,1.7],"req_pushed_pct":[39.4,66.7,52.0,61.1,47.2,58.2,60.4,56.2,39.8,39.6,54.1,44.2,53.8,38.2,53.8,54.8,49.4,43.9,52.0,66.2],"total_orders":[33,18,25,36,36,55,91,73,93,101,74,77,52,55,78,73,87,107,150,74],"shipped":[33,18,24,36,35,55,90,72,91,97,71,76,49,54,78,71,82,106,142,65],"on_time":[10,8,12,14,11,21,40,40,31,40,34,25,18,18,29,25,23,21,20,12],"late":[14,8,8,18,19,30,44,26,53,49,34,46,29,33,46,43,54,80,119,50]},"Santa Clara Systems":{"on_time_rate":[35.7,50.0,68.4,20.0,46.6,19.2,21.2,16.4,17.2,31.4,19.6,27.1,33.3,22.2,31.2,31.2,28.2,12.0,21.4,10.7],"avg_lead_time":[1.7,2.0,4.5,2.6,3.0,2.1,2.0,2.5,3.2,2.2,4.7,2.4,2.5,2.2,2.3,2.1,2.4,2.6,3.2,2.2],"avg_days_late":[1.6,1.1,1.3,1.5,13.1,1.3,1.4,1.8,1.6,1.9,1.5,1.5,1.3,1.5,1.4,1.4,1.6,1.6,2.4,1.6],"req_pushed_pct":[35.5,51.7,40.9,60.0,70.5,36.7,40.7,51.6,44.1,43.7,26.5,32.8,61.0,37.8,51.0,49.3,38.4,33.0,52.6,50.0],"total_orders":[31,29,44,25,61,30,54,62,68,71,49,58,59,37,49,67,86,94,76,30],"shipped":[31,29,42,25,60,30,53,61,65,71,47,57,59,36,49,65,83,94,71,28],"on_time":[10,14,26,5,27,5,11,10,11,22,9,13,19,8,15,20,22,11,15,3],"late":[18,14,12,20,31,21,41,51,53,48,37,35,38,28,33,44,56,81,55,25]},"Electrical Source Holdings : Monster Electrical":{"on_time_rate":[62.0,88.9,92.0,97.2,83.3,88.5,72.7,72.7,78.6,81.5,67.4,33.3,76.9,72.7,60.0,57.4,54.9,32.2,41.4,28.8],"avg_lead_time":[1.7,11.8,6.8,3.7,2.5,12.2,3.1,3.9,1.5,1.5,1.7,1.8,1.6,6.2,2.0,1.5,2.5,2.4,1.6,2.6],"avg_days_late":[1.1,1.0,2.0,1.0,2.0,2.3,1.2,1.5,1.0,1.3,1.1,1.6,2.0,1.7,1.4,1.5,1.8,1.4,1.2,1.4],"req_pushed_pct":[54.5,56.4,39.3,45.0,36.5,62.1,44.9,60.8,57.8,48.6,50.0,48.1,55.8,76.1,71.7,43.4,52.7,54.0,41.3,50.0],"total_orders":[55,39,28,40,52,29,69,51,45,70,44,54,43,46,46,53,55,63,63,62],"shipped":[54,38,28,40,51,28,69,50,45,70,44,53,42,45,45,49,55,61,61,60],"on_time":[31,32,23,35,40,23,48,32,33,53,29,17,30,32,24,27,28,19,24,15],"late":[19,4,2,1,8,3,18,12,9,12,14,34,9,12,16,20,23,40,34,37]},"Radwell International Canada":{"on_time_rate":[83.9,77.4,81.6,77.8,83.9,83.6,77.9,53.1,66.0,70.2,37.5,48.5,79.5,78.9,68.0,83.3,70.0,72.9,45.0,61.1],"avg_lead_time":[2.5,2.5,3.2,3.2,2.8,3.9,3.9,3.8,3.2,3.3,3.4,3.5,3.7,3.1,4.7,4.5,3.0,3.8,3.4,3.7],"avg_days_late":[1.2,1.5,1.1,1.3,2.2,2.0,1.6,1.2,1.7,1.8,1.3,1.8,2.3,1.5,1.9,1.0,1.5,1.9,1.3,2.1],"req_pushed_pct":[89.8,83.3,96.1,87.3,95.0,93.3,90.9,83.9,86.0,89.2,88.9,76.7,80.0,84.8,89.7,100.0,81.8,83.6,87.2,69.2],"total_orders":[59,72,51,63,60,60,88,56,57,65,27,43,50,66,29,7,22,67,47,26],"shipped":[57,64,49,54,57,56,83,54,52,59,25,39,49,65,26,6,21,63,42,23],"on_time":[47,48,40,42,47,46,60,26,33,40,9,16,35,45,17,5,14,43,18,11],"late":[9,14,9,12,9,9,17,23,17,17,15,17,9,12,8,1,6,16,22,7]},"American West Surplus":{"on_time_rate":[74.1,75.0,96.7,88.0,87.5,70.4,53.1,60.5,71.1,64.7,44.4,28.6,81.8,44.4,38.5,76.2,62.1,73.3,51.9,50.0],"avg_lead_time":[3.8,3.3,1.7,1.8,1.0,2.3,2.2,2.6,2.5,2.6,3.2,3.6,2.8,3.7,3.0,1.7,3.0,3.2,4.4,4.9],"avg_days_late":[7.9,1.4,1.0,1.7,1.7,1.5,1.0,1.9,2.3,1.3,1.5,1.3,1.0,1.9,1.3,1.0,1.6,2.5,1.7,1.8],"req_pushed_pct":[65.6,81.8,76.5,83.9,50.0,70.0,69.4,67.4,56.8,78.9,71.9,63.6,92.3,80.0,75.9,70.8,83.3,82.4,79.3,60.0],"total_orders":[32,22,34,31,32,30,36,43,44,19,32,22,26,30,29,24,30,17,29,20],"shipped":[30,22,32,28,32,29,35,40,43,18,31,22,24,28,28,22,30,16,28,16],"on_time":[20,15,29,22,21,19,17,23,27,11,12,6,18,12,10,16,18,11,14,5],"late":[7,5,1,3,3,8,15,15,11,6,15,15,4,15,16,5,11,4,13,5]},"Central Breaker & Control":{"on_time_rate":[87.8,100.0,95.0,93.3,90.0,82.4,72.4,64.3,64.5,66.7,50.0,28.6,89.5,66.7,52.2,60.0,47.8,25.0,36.8,31.6],"avg_lead_time":[2.3,1.7,3.8,1.4,1.5,1.4,2.4,3.2,2.8,1.4,3.7,3.0,1.3,2.4,3.5,2.3,1.8,3.0,3.4,3.5],"avg_days_late":[1.4,0,2.0,3.0,2.5,1.0,1.1,1.0,1.7,3.0,1.6,1.5,2.0,1.8,1.6,2.0,1.7,1.9,1.6,1.8],"req_pushed_pct":[66.0,65.2,59.1,68.8,65.2,54.5,67.7,57.9,57.1,51.3,70.0,60.0,43.5,87.5,57.1,63.6,40.0,56.0,72.7,68.0],"total_orders":[47,23,22,16,23,22,31,19,35,39,30,25,23,16,28,22,25,25,44,25],"shipped":[46,22,22,16,20,22,29,16,33,38,30,24,23,15,26,21,25,24,43,22],"on_time":[36,21,19,14,18,14,21,9,20,24,14,6,17,10,12,12,11,6,14,6],"late":[5,0,1,1,2,3,8,5,11,12,14,15,2,5,11,8,12,18,24,13]},"ARCA, Asset Recovery Company of America":{"on_time_rate":[79.4,68.0,80.0,72.7,73.7,53.8,69.4,64.5,73.3,76.2,84.2,52.9,77.8,72.7,87.5,80.0,87.5,53.8,63.6,50.0],"avg_lead_time":[1.8,7.9,0.8,1.8,1.4,1.6,2.4,2.8,4.9,2.7,3.2,2.2,2.2,3.3,0.9,0.8,1.1,2.5,3.6,5.2],"avg_days_late":[1.0,1.4,1.0,1.0,1.6,1.3,1.3,1.6,1.0,1.8,5.7,1.6,1.8,1.0,1.0,1.0,1.0,1.0,1.5,2.0],"req_pushed_pct":[69.2,61.3,41.7,57.1,72.7,56.2,70.0,75.0,94.3,76.0,85.7,71.4,71.4,84.6,87.5,80.0,53.8,66.7,85.7,60.0],"total_orders":[39,31,12,28,22,16,40,36,35,25,21,21,21,13,8,5,13,15,14,5],"shipped":[38,27,11,23,20,14,38,33,31,22,20,20,21,11,8,5,11,13,11,5],"on_time":[27,17,8,16,14,7,25,20,22,16,16,9,14,8,7,4,7,7,7,2],"late":[7,8,2,6,5,6,11,11,8,5,3,8,4,3,1,1,1,6,4,2]}},"by_category":{"Circuit Breaker":{"on_time_rate":[67.2,75.2,81.1,73.6,79.2,70.8,64.9,65.4,66.8,68.9,57.3,36.6,66.9,45.2,49.9,55.6,54.3,46.1,43.0,42.0],"avg_lead_time":[2.9,2.4,2.2,2.1,2.6,2.8,2.2,2.6,2.5,3.1,2.8,2.9,3.2,2.8,2.8,2.3,2.5,3.0,2.7,2.5],"avg_days_late":[2.9,1.6,1.6,1.7,1.5,2.1,1.3,1.5,1.8,2.0,1.7,1.7,1.7,1.5,1.5,1.6,1.5,1.7,1.4,1.6],"req_pushed_pct":[52.5,60.7,56.0,60.1,57.7,58.9,61.3,67.3,58.5,65.3,67.5,60.6,68.7,65.1,63.8,61.2,63.4,62.3,66.6,65.6],"total_orders":[749,773,638,712,612,628,771,657,689,675,517,571,571,593,666,642,703,864,922,684],"shipped":[720,732,610,674,588,598,727,621,658,639,498,545,538,559,634,613,664,831,864,589],"on_time":[390,488,437,452,431,384,441,390,416,414,270,186,345,238,302,324,343,375,360,230],"late":[190,161,102,162,113,158,239,206,207,187,201,322,171,289,303,259,289,439,478,318]},"Motor Control":{"on_time_rate":[66.8,69.1,71.8,61.4,72.7,58.3,56.4,51.4,53.9,61.4,53.0,38.1,60.9,47.3,42.4,49.7,44.9,30.6,38.4,34.1],"avg_lead_time":[2.4,2.9,2.5,2.3,2.4,2.6,2.4,3.1,2.4,2.0,2.4,3.2,2.6,3.4,2.6,2.5,2.6,2.6,3.1,2.6],"avg_days_late":[1.8,1.8,1.4,1.4,1.6,1.7,1.3,1.6,1.6,1.6,1.7,1.8,1.5,1.5,1.5,1.7,2.5,1.6,1.5,1.4],"req_pushed_pct":[48.8,61.0,58.4,62.3,68.5,62.7,65.2,63.3,58.7,60.6,59.9,66.3,69.1,66.7,61.5,59.6,58.1,57.7,65.4,62.0],"total_orders":[373,367,351,385,410,408,534,463,489,495,354,406,401,426,403,379,453,416,460,316],"shipped":[363,352,341,372,390,395,516,451,464,474,340,394,388,408,390,368,441,405,447,282],"on_time":[195,226,229,215,271,217,275,223,242,288,169,146,226,186,154,170,186,121,165,91],"late":[97,101,90,135,102,155,213,211,207,181,150,237,145,207,209,172,228,274,265,176]},"Automation":{"on_time_rate":[65.2,58.6,60.2,54.7,67.2,65.9,52.0,55.6,46.0,52.3,50.4,37.4,62.9,52.5,50.4,48.6,51.9,39.6,43.6,41.2],"avg_lead_time":[2.7,3.4,3.0,3.0,2.5,2.8,2.8,3.2,2.9,2.7,2.5,3.6,3.5,3.1,3.0,2.7,2.6,3.0,2.9,2.6],"avg_days_late":[1.2,1.3,1.4,1.5,1.5,1.7,1.5,1.9,1.6,1.4,1.4,1.7,1.5,1.3,1.3,1.5,1.4,1.5,1.4,1.6],"req_pushed_pct":[63.9,68.4,68.4,71.4,73.4,72.2,70.9,76.7,65.2,73.4,74.4,72.1,79.5,74.2,76.6,73.3,71.6,66.5,75.3,70.7],"total_orders":[388,367,370,416,417,367,478,412,382,369,266,348,390,310,252,273,285,361,381,239],"shipped":[370,344,360,388,394,352,456,397,369,344,253,335,371,295,238,258,274,341,366,205],"on_time":[225,194,210,209,258,222,231,219,166,174,124,119,227,149,115,118,135,129,156,82],"late":[120,137,139,173,126,115,213,175,195,159,122,199,134,135,113,125,125,197,202,117]},"Fuse":{"on_time_rate":[64.9,69.3,73.4,55.5,71.6,53.9,56.5,51.0,50.2,62.8,55.0,34.1,56.1,54.9,46.9,51.2,51.8,35.0,43.2,38.2],"avg_lead_time":[2.4,4.0,2.7,2.6,2.3,3.8,2.8,3.4,2.5,2.6,3.3,2.7,3.3,4.2,3.3,2.2,2.9,2.7,2.7,2.6],"avg_days_late":[1.2,1.4,1.6,1.1,1.3,1.4,1.3,1.5,1.5,1.6,1.9,1.5,1.3,1.4,1.4,1.6,1.5,1.3,1.4,1.5],"req_pushed_pct":[61.9,64.9,65.3,71.9,65.6,73.0,72.0,71.4,65.1,66.0,69.1,63.5,62.7,85.6,76.4,61.7,73.1,62.0,65.0,68.4],"total_orders":[194,185,170,199,221,189,311,224,232,238,175,200,177,187,174,180,238,266,334,228],"shipped":[189,178,164,192,215,184,303,218,223,235,173,193,170,184,169,171,231,256,323,197],"on_time":[113,115,113,101,144,96,166,106,107,142,94,63,92,100,75,83,114,86,134,71],"late":[61,51,41,81,57,82,128,102,106,84,77,122,72,82,85,79,106,160,176,115]},"Pneumatic":{"on_time_rate":[69.2,55.9,51.7,45.8,66.1,55.7,40.9,46.0,42.1,51.3,49.4,25.3,59.2,53.1,29.3,29.1,39.2,49.4,45.9,60.5],"avg_lead_time":[3.1,2.2,2.6,2.2,1.9,2.5,2.5,2.4,2.4,2.3,2.1,3.0,2.4,2.7,2.4,2.4,2.6,2.3,2.4,2.4],"avg_days_late":[1.3,1.4,1.2,1.4,1.4,1.3,1.4,1.3,1.5,1.2,1.2,1.6,1.4,1.5,1.3,1.4,1.4,1.2,1.5,1.1],"req_pushed_pct":[67.8,68.1,72.8,69.3,76.2,69.2,71.2,67.7,73.7,70.1,66.0,71.4,80.0,82.4,51.9,67.4,75.0,73.3,68.1,77.1],"total_orders":[115,113,125,140,122,117,139,130,114,127,94,98,125,102,77,92,56,86,91,48],"shipped":[112,105,117,135,120,111,131,126,108,123,92,92,122,100,71,87,55,82,88,44],"on_time":[74,57,60,60,76,59,52,57,45,61,44,22,71,52,17,23,20,39,39,26],"late":[33,45,56,71,39,47,75,67,62,58,45,65,49,46,41,56,31,40,46,17]}},"categories":["Circuit Breaker","Motor Control","Automation","Fuse","Pneumatic"],"locations":["Radwell International US","P21 - Electrical.com","Electrical Source Holdings : NABCO","Any Breakers Inc.","Santa Clara Systems","Electrical Source Holdings : Monster Electrical","Radwell International Canada","American West Surplus","Central Breaker & Control","ARCA, Asset Recovery Company of America"]};
+
+
+const GAP = {"total_parts":3307,"total_q_val":30633910,"total_c_val":548526,"rows":[{"part":"ITAP366","desc":"CH ITAP PH 3W 600A FUSIBLE BUS PLUG","cat":"Bus Plug-Fusible","q_lines":23,"q_val":2412516,"q_custs":16,"c_lines":0,"c_val":0,"c_custs":0,"total_val":2412516,"new_conf_sales":0,"pt_conf_sales":19600},{"part":"SEF362500LSG","desc":"SEF 2500AMP 3P LSIG","cat":"Circuit Breaker-Insulated Case","q_lines":1,"q_val":23000,"q_custs":1,"c_lines":2,"c_val":64000,"c_custs":2,"total_val":87000,"new_conf_sales":0,"pt_conf_sales":0},{"part":"IBPLD3600","desc":"EATON 600A 600V 3P3W BREAKER BUS PLUG","cat":"Other","q_lines":14,"q_val":946143,"q_custs":9,"c_lines":0,"c_val":0,"c_custs":0,"total_val":946143,"new_conf_sales":0,"pt_conf_sales":0},{"part":"PCG33000F","desc":"PCG 3P 3000A","cat":"Circuit Breaker-Insulated Case","q_lines":0,"q_val":0,"q_custs":0,"c_lines":1,"c_val":55500,"c_custs":1,"total_val":55500,"new_conf_sales":0,"pt_conf_sales":0},{"part":"PXF361600G","desc":"PXF 3 POLE 1600AMP LSIG","cat":"Circuit Breaker-Molded Case","q_lines":0,"q_val":0,"q_custs":0,"c_lines":2,"c_val":54500,"c_custs":2,"total_val":54500,"new_conf_sales":0,"pt_conf_sales":23000},{"part":"VB1-4.16-250-1200A","desc":"Vacuum Circuit Breaker","cat":"Other","q_lines":0,"q_val":0,"q_custs":0,"c_lines":1,"c_val":49840,"c_custs":1,"total_val":49840,"new_conf_sales":0,"pt_conf_sales":0},{"part":"TP4040T","desc":"4000A LIG FIX MOUNT MO","cat":"Other","q_lines":0,"q_val":0,"q_custs":0,"c_lines":1,"c_val":36441,"c_custs":1,"total_val":36441,"new_conf_sales":0,"pt_conf_sales":0},{"part":"RLF36200CU44A ","desc":"2000 A 600V LSIG","cat":"Other","q_lines":0,"q_val":0,"q_custs":0,"c_lines":1,"c_val":22420,"c_custs":1,"total_val":22420,"new_conf_sales":0,"pt_conf_sales":0},{"part":"TP4040SS","desc":"GE TP 4000A POWER BREAK I","cat":"Circuit Breaker-Insulated Case","q_lines":0,"q_val":0,"q_custs":0,"c_lines":1,"c_val":21000,"c_custs":1,"total_val":21000,"new_conf_sales":0,"pt_conf_sales":0},{"part":"ITAP366H","desc":"CUTLER HAMMER ITAP366H 600A 600VAC 3P3W","cat":"Bus Plug-Fusible","q_lines":17,"q_val":293840,"q_custs":11,"c_lines":0,"c_val":0,"c_custs":0,"total_val":293840,"new_conf_sales":0,"pt_conf_sales":14000},{"part":"SPD6A160LI","desc":"SIE 3P 1600A 600VAC","cat":"Circuit Breaker-Molded Case","q_lines":0,"q_val":0,"q_custs":0,"c_lines":2,"c_val":17500,"c_custs":2,"total_val":17500,"new_conf_sales":0,"pt_conf_sales":0},{"part":"PTQ36120GH","desc":"ITEM","cat":"Bus Plug-Fusible","q_lines":7,"q_val":238655,"q_custs":7,"c_lines":0,"c_val":0,"c_custs":0,"total_val":238655,"new_conf_sales":0,"pt_conf_sales":0},{"part":"SB440SGL4G","desc":"GE 400A 600V 3P4W BREAKER BUS PLUG","cat":"Bus Plug-Breaker Type","q_lines":7,"q_val":225985,"q_custs":5,"c_lines":0,"c_val":0,"c_custs":0,"total_val":225985,"new_conf_sales":0,"pt_conf_sales":0},{"part":"PTQ46120GH","desc":"1200A 3PH 4W FUSIBLE","cat":"Bus Plug-Fusible","q_lines":9,"q_val":224200,"q_custs":7,"c_lines":0,"c_val":0,"c_custs":0,"total_val":224200,"new_conf_sales":0,"pt_conf_sales":0},{"part":"NW40H","desc":"NW 4000A MASTERPACT","cat":"Circuit Breaker-Insulated Case","q_lines":11,"q_val":203000,"q_custs":1,"c_lines":0,"c_val":0,"c_custs":0,"total_val":203000,"new_conf_sales":55000,"pt_conf_sales":0},{"part":"TP2020TTR","desc":"POWER BREAK","cat":"Circuit Breaker-Insulated Case","q_lines":6,"q_val":40700,"q_custs":1,"c_lines":1,"c_val":9000,"c_custs":1,"total_val":49700,"new_conf_sales":0,"pt_conf_sales":6750},{"part":"SD78426","desc":"SQ D 200A 600V 3P4W BREAKER BUS PLUG","cat":"Bus Plug-Breaker Type","q_lines":6,"q_val":188615,"q_custs":6,"c_lines":0,"c_val":0,"c_custs":0,"total_val":188615,"new_conf_sales":0,"pt_conf_sales":0},{"part":"RV464G","desc":"RV 3PH 4W 200A FUSIBLE W/","cat":"Bus Plug-Fusible","q_lines":14,"q_val":171000,"q_custs":4,"c_lines":0,"c_val":0,"c_custs":0,"total_val":171000,"new_conf_sales":0,"pt_conf_sales":0},{"part":"BPHJD3200","desc":"BPHJD3200 Cutler Hammer / Eaton / Westi","cat":"Bus Plug-Breaker Type","q_lines":5,"q_val":165950,"q_custs":5,"c_lines":0,"c_val":0,"c_custs":0,"total_val":165950,"new_conf_sales":0,"pt_conf_sales":0},{"part":"NX361200G","desc":"NX 3P 1200A W/ GROUND","cat":"Circuit Breaker-Molded Case","q_lines":1,"q_val":8400,"q_custs":1,"c_lines":1,"c_val":9500,"c_custs":1,"total_val":17900,"new_conf_sales":0,"pt_conf_sales":0},{"part":"SLEC360500GED6","desc":"SIEMENS 50A 600V 3P3W BREAKER BUS PLUG","cat":"Bus Plug-Breaker Type","q_lines":5,"q_val":165000,"q_custs":5,"c_lines":0,"c_val":0,"c_custs":0,"total_val":165000,"new_conf_sales":0,"pt_conf_sales":0},{"part":"DSL206","desc":"DSL-206; 800A FRAME","cat":"Other","q_lines":0,"q_val":0,"q_custs":0,"c_lines":1,"c_val":9850,"c_custs":1,"total_val":9850,"new_conf_sales":0,"pt_conf_sales":0},{"part":"AC464RG","desc":"GENERAL ELECTRIC AC464RG BUS PLUG 200A 6","cat":"Bus Plug-Fusible","q_lines":30,"q_val":156668,"q_custs":12,"c_lines":0,"c_val":0,"c_custs":0,"total_val":156668,"new_conf_sales":0,"pt_conf_sales":0},{"part":"PC32000F","desc":"2000A MAX FRAME ONLY","cat":"Circuit Breaker-Insulated Case","q_lines":7,"q_val":33635,"q_custs":1,"c_lines":1,"c_val":7500,"c_custs":1,"total_val":41135,"new_conf_sales":0,"pt_conf_sales":57145},{"part":"SLVBH4650","desc":"SIEMENS 400A 600V 3P4W FUSIBLE BUS PLUG","cat":"Bus Plug-Fusible","q_lines":3,"q_val":157860,"q_custs":3,"c_lines":0,"c_val":0,"c_custs":0,"total_val":157860,"new_conf_sales":0,"pt_conf_sales":0},{"part":"SB340SGL4G","desc":"GE 400A 600V 3P3W BREAKER BUS PLUG","cat":"Bus Plug-Breaker Type","q_lines":6,"q_val":154460,"q_custs":4,"c_lines":0,"c_val":0,"c_custs":0,"total_val":154460,"new_conf_sales":0,"pt_conf_sales":0},{"part":"SQDM6-BC5-4.0","desc":"SQ D MOD 6 SZ 5 BREAKER COMBO MCC BUCKET","cat":"Other","q_lines":3,"q_val":150000,"q_custs":3,"c_lines":0,"c_val":0,"c_custs":0,"total_val":150000,"new_conf_sales":0,"pt_conf_sales":0},{"part":"ADS36800LB","desc":"800A 600V FUSIBLE","cat":"Switch-Panel Mount","q_lines":17,"q_val":142480,"q_custs":12,"c_lines":0,"c_val":0,"c_custs":0,"total_val":142480,"new_conf_sales":0,"pt_conf_sales":14250},{"part":"SPQ1236","desc":"FPE-FEDERAL PACIFIC SPQ1236 BUS PLUG 200","cat":"Bus Plug-Fusible","q_lines":14,"q_val":139390,"q_custs":11,"c_lines":0,"c_val":0,"c_custs":0,"total_val":139390,"new_conf_sales":0,"pt_conf_sales":2600},{"part":"SLVBH3630G","desc":"SIEMENS 100A 600V 3P3W FUSIBLE BUS PLUG","cat":"Bus Plug-Fusible","q_lines":5,"q_val":139500,"q_custs":5,"c_lines":0,"c_val":0,"c_custs":0,"total_val":139500,"new_conf_sales":0,"pt_conf_sales":0},{"part":"SIETS-BC5-3.0","desc":"SIEMENS TIASTAR SZ 5 3.0SF COMBO MCC","cat":"Motor Control-MCC Bucket","q_lines":5,"q_val":139000,"q_custs":5,"c_lines":0,"c_val":0,"c_custs":0,"total_val":139000,"new_conf_sales":0,"pt_conf_sales":34600},{"part":"ITAP365","desc":"BUS PLUG","cat":"Bus Plug-Fusible","q_lines":14,"q_val":131348,"q_custs":7,"c_lines":0,"c_val":0,"c_custs":0,"total_val":131348,"new_conf_sales":0,"pt_conf_sales":0},{"part":"HND312T35W","desc":"1200A LSG BRKR","cat":"Circuit Breaker-Molded Case","q_lines":3,"q_val":11250,"q_custs":1,"c_lines":1,"c_val":7100,"c_custs":1,"total_val":18350,"new_conf_sales":0,"pt_conf_sales":0},{"part":"NW30H","desc":"3000A MASTERPACT CIRCUIT","cat":"Circuit Breaker-Insulated Case","q_lines":10,"q_val":130000,"q_custs":1,"c_lines":0,"c_val":0,"c_custs":0,"total_val":130000,"new_conf_sales":0,"pt_conf_sales":56500},{"part":"TAP364","desc":"200A 600V FUSIBLE PLUG","cat":"Bus Plug-Fusible","q_lines":17,"q_val":116430,"q_custs":12,"c_lines":0,"c_val":0,"c_custs":0,"total_val":116430,"new_conf_sales":0,"pt_conf_sales":9450},{"part":"ND312T33W","desc":"ND 3P 480V 1200A","cat":"Circuit Breaker-Molded Case","q_lines":2,"q_val":7675,"q_custs":1,"c_lines":1,"c_val":6800,"c_custs":1,"total_val":14475,"new_conf_sales":0,"pt_conf_sales":10000},{"part":"CF2320GETBMB","desc":"SQ D 2000A 600V 3P3W CU BUSWAY TAP BOX","cat":"Bus Plug-Tap Box","q_lines":1,"q_val":120000,"q_custs":1,"c_lines":0,"c_val":0,"c_custs":0,"total_val":120000,"new_conf_sales":9995,"pt_conf_sales":0},{"part":"SD3640","desc":"SQ D 400A 600V 3P3W FUSIBLE BUS PLUG","cat":"Bus Plug-Fusible","q_lines":3,"q_val":116438,"q_custs":3,"c_lines":0,"c_val":0,"c_custs":0,"total_val":116438,"new_conf_sales":0,"pt_conf_sales":0},{"part":"PLA34060CU33A","desc":"600A 3POLE","cat":"Other","q_lines":0,"q_val":0,"q_custs":0,"c_lines":1,"c_val":6730,"c_custs":1,"total_val":6730,"new_conf_sales":0,"pt_conf_sales":0},{"part":"ITAP323","desc":"BUS PLUG","cat":"Bus Plug-Fusible","q_lines":2,"q_val":110446,"q_custs":2,"c_lines":0,"c_val":0,"c_custs":0,"total_val":110446,"new_conf_sales":0,"pt_conf_sales":0},{"part":"SLEC360300GED6","desc":"SIEMENS 30A 600V 3P3W BREAKER BUS PLUG","cat":"Bus Plug-Breaker Type","q_lines":6,"q_val":108165,"q_custs":5,"c_lines":0,"c_val":0,"c_custs":0,"total_val":108165,"new_conf_sales":0,"pt_conf_sales":0},{"part":"BPKA3225N","desc":"EATON 225A 600V 3P4W BREAKER BUS PLUG","cat":"Bus Plug-Breaker Type","q_lines":4,"q_val":109130,"q_custs":3,"c_lines":0,"c_val":0,"c_custs":0,"total_val":109130,"new_conf_sales":0,"pt_conf_sales":0},{"part":"SSF30B330","desc":"SSF POWER BREAK II 3 POLE 3","cat":"Circuit Breaker-Insulated Case","q_lines":8,"q_val":109170,"q_custs":1,"c_lines":0,"c_val":0,"c_custs":0,"total_val":109170,"new_conf_sales":0,"pt_conf_sales":0},{"part":"MFB400GLI4A","desc":"GE 8000 LINE 400A CB FEEDER MCC BUCKET","cat":"Other","q_lines":12,"q_val":105800,"q_custs":6,"c_lines":0,"c_val":0,"c_custs":0,"total_val":105800,"new_conf_sales":0,"pt_conf_sales":4200},{"part":"RV466G","desc":"RV466G 3PH 4W 600AMP BUS","cat":"Bus Plug-Fusible","q_lines":5,"q_val":105967,"q_custs":5,"c_lines":0,"c_val":0,"c_custs":0,"total_val":105967,"new_conf_sales":0,"pt_conf_sales":0},{"part":"BPKA3200N","desc":"200A 600V 3P4W BREAKER TYPE BUS PLUG","cat":"Bus Plug-Breaker Type","q_lines":7,"q_val":104280,"q_custs":3,"c_lines":0,"c_val":0,"c_custs":0,"total_val":104280,"new_conf_sales":0,"pt_conf_sales":3750},{"part":"RV465G","desc":"RV 3PH 400A 600V","cat":"Bus Plug-Fusible","q_lines":5,"q_val":103900,"q_custs":2,"c_lines":0,"c_val":0,"c_custs":0,"total_val":103900,"new_conf_sales":0,"pt_conf_sales":0},{"part":"SQDM6BF300","desc":"SQUARE D MOD 6 300A CB FEEDER MCC BUCKET","cat":"Other","q_lines":7,"q_val":101200,"q_custs":5,"c_lines":0,"c_val":0,"c_custs":0,"total_val":101200,"new_conf_sales":0,"pt_conf_sales":0},{"part":"SD3620","desc":"BUS PLUG","cat":"Bus Plug-Fusible","q_lines":9,"q_val":98945,"q_custs":8,"c_lines":0,"c_val":0,"c_custs":0,"total_val":98945,"new_conf_sales":0,"pt_conf_sales":0},{"part":"8998SBF250","desc":"SQ D MODEL 6 250A CB FEEDER MCC BUCKET","cat":"Other","q_lines":13,"q_val":98500,"q_custs":8,"c_lines":0,"c_val":0,"c_custs":0,"total_val":98500,"new_conf_sales":0,"pt_conf_sales":0}],"by_cat":[{"cat":"Bus Plug-Fusible","parts":362,"total_val":8809205,"c_val":850,"q_val":8808355},{"cat":"Uncategorized","parts":636,"total_val":7195159,"c_val":141501,"q_val":7053658},{"cat":"Bus Plug-Breaker Type","parts":226,"total_val":3664722,"c_val":0,"q_val":3664722},{"cat":"Circuit Breaker-Molded Case","parts":1255,"total_val":3395688,"c_val":235418,"q_val":3160270},{"cat":"Circuit Breaker-Insulated Case","parts":130,"total_val":3229736,"c_val":157000,"q_val":3072736},{"cat":"Switch-Panel Mount","parts":207,"total_val":2280564,"c_val":1950,"q_val":2278614},{"cat":"Motor Control-MCC Bucket","parts":48,"total_val":988340,"c_val":0,"q_val":988340},{"cat":"Bus Plug-Tap Box","parts":13,"total_val":294938,"c_val":0,"q_val":294938},{"cat":"Switch-Disconnect","parts":50,"total_val":272290,"c_val":0,"q_val":272290},{"cat":"Switch-Bolted Pressure","parts":16,"total_val":149685,"c_val":0,"q_val":149685},{"cat":"Bus Plug-Busway","parts":21,"total_val":135113,"c_val":0,"q_val":135113},{"cat":"Switch-Strap Kit","parts":30,"total_val":114691,"c_val":453,"q_val":114238}]};
+
+const MONTH_LABELS = ['Jan 25','Feb 25','Mar 25','Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25','Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26','Jul 26','Aug 26*'];
+
+// Monthly table rows
+const ENOW_TABLE_ROWS = [
+  ['Jan 2025','2,593','2,369','1,478','891','a','62.4%','3.2d','8.0','3.3%'],
+  ['Feb 2025','2,422','2,273','1,444','829','a','63.5%','2.7d','6.4','1.7%'],
+  ['Mar 2025','2,539','2,354','1,466','885','a','62.4%','4.5d','9.2','2.6%'],
+  ['Apr 2025','2,781','2,579','1,690','889','a','65.5%','3.7d','8.1','2.6%'],
+  ['May 2025','2,482','2,307','1,573','734','a','68.2%','3.2d','7.2','4.3%'],
+  ['Jun 2025','3,170','2,968','1,772','1,193','r','59.8%','4.2d','7.9','9.7%'],
+  ['Jul 2025','3,319','3,045','1,819','1,226','r','59.7%','4.0d','6.2','11.9%'],
+  ['Aug 2025','3,072','2,886','1,773','1,105','a','61.6%','3.8d','6.4','11.8%'],
+  ['Sep 2025','2,991','2,824','1,840','982','a','65.2%','3.7d','5.4','22.9%'],
+  ['Oct 2025','3,133','2,944','2,053','891','a','69.7%','4.1d','5.7','20.7%'],
+  ['Nov 2025','2,361','2,216','1,427','787','a','64.5%','4.2d','4.4','22.8%'],
+  ['Dec 2025','2,454','2,293','1,484','808','a','64.7%','5.5d','6.5','24.2%'],
+  ['Jan 2026','2,469','2,311','1,577','734','a','68.2%','3.6d','3.9','27.9%'],
+  ['Feb 2026','2,568','2,375','1,702','670','g','71.8%','3.1d','3.3','30.1%'],
+  ['Mar 2026','2,750','2,605','1,788','817','a','68.6%','4.4d','4.7','30.0%'],
+  ['Apr 2026','2,431','2,274','1,589','685','a','69.9%','4.1d','4.9','29.6%'],
+  ['May 2026','2,432','2,299','1,616','680','g','70.4%','3.3d','4.3','27.9%'],
+  ['Jun 2026','2,973','2,783','1,917','866','a','68.9%','3.2d','4.1','24.9%'],
+  ['Jul 2026','3,111','2,862','1,987','874','a','69.5%','2.3d','3.3','24.1%'],
+  ['Aug 2026*','2,121','1,749','1,341','399','g','77.1%','1.2d','2.2','25.7%'],
+];
+const EC_TABLE_ROWS = [
+  ['Jan 2025','2,496','2,398','1,388','679','a','67.2%','3.1d','1.8','57.7%'],
+  ['Feb 2025','2,453','2,326','1,434','720','a','66.6%','3.4d','1.6','64.0%'],
+  ['Mar 2025','2,270','2,176','1,402','635','a','68.8%','3.1d','1.4','63.3%'],
+  ['Apr 2025','2,583','2,463','1,450','893','a','61.9%','2.7d','1.5','67.1%'],
+  ['May 2025','2,425','2,325','1,595','624','g','71.9%','2.6d','2.0','67.8%'],
+  ['Jun 2025','2,383','2,274','1,338','805','a','62.4%','3.0d','1.6','66.8%'],
+  ['Jul 2025','2,965','2,834','1,517','1,192','r','56.0%','2.7d','1.4','67.7%'],
+  ['Aug 2025','2,578','2,467','1,333','1,053','r','55.9%','3.1d','1.6','70.4%'],
+  ['Sep 2025','2,543','2,433','1,309','1,040','r','55.7%','2.8d','1.6','64.8%'],
+  ['Oct 2025','2,566','2,440','1,389','972','r','58.8%','2.9d','1.7','68.2%'],
+  ['Nov 2025','1,872','1,798','922','799','r','53.6%','3.0d','1.6','69.2%'],
+  ['Dec 2025','2,188','2,101','743','1,250','r','37.3%','3.3d','1.7','67.8%'],
+  ['Jan 2026','2,298','2,195','1,329','783','a','62.9%','3.1d','1.5','73.4%'],
+  ['Feb 2026','2,265','2,164','1,025','1,046','r','49.5%','3.5d','1.5','71.5%'],
+  ['Mar 2026','2,146','2,052','919','1,023','r','47.3%','3.0d','1.5','68.5%'],
+  ['Apr 2026','2,146','2,042','997','928','r','51.8%','2.8d','1.6','66.6%'],
+  ['May 2026','2,331','2,225','1,102','1,010','r','52.2%','2.8d','1.8','68.3%'],
+  ['Jun 2026','2,680','2,573','1,016','1,486','r','40.6%','3.0d','1.6','64.6%'],
+  ['Jul 2026','2,859','2,726','1,148','1,493','r','43.5%','2.9d','1.5','69.5%'],
+  ['Aug 2026*','1,971','1,704','675','938','r','41.8%','2.6d','1.5','68.4%'],
+];
+
+// ─── RTS DATA ─────────────────────────────────────────────────────────────
+const RTS = {
+  p21_sales: [174234,107515,73100,141664,142810,216213,198163,159979,124023,82993,72333,77685,66840,97713,96686,74427,103495,109950,107833,80490],
+  ns_sales:  [29819,39253,38334,21591,35138,3666,22841,20167,18187,23896,23568,8221,13350,23850,20089,17703,21437,28744,39047,18951],
+  rts_lt:    [3.0,2.6,3.1,3.4,2.4,1.4,3.2,2.4,2.8,6.6,3.2,4.6,3.5,3.2,4.1,4.3,5.4,4.1,5.5,2.6],
+  nonrts_lt: [4.4,4.6,3.7,4.0,4.2,4.0,4.0,4.5,4.1,4.6,4.3,4.8,4.9,4.8,4.4,4.0,3.9,4.1,3.8,3.2],
+  top15_labels: ['SFLA36AT0250','SB420SGL4GF+','SQDM6BF400','BOS14353','QMB367W','SGLA36AT0400','SKLA36AT0800','FDPW367','SKLA36AT1200','PQ4603G','SB465RG','PQ3610G','SGLA36AT0600','SELA36AT0100','FVK465RT'],
+  top15_p21: [91342,67600,42500,38450,38360,35365,35150,34965,33375,31454,31380,29845,27610,24980,23895],
+  top15_ns:  [21101,0,0,0,0,1210,25573,0,6644,0,0,12382,8777,1636,0],
+  top15_lt:  [1.8,null,null,null,null,2.0,4.3,null,2.5,null,null,5.6,12.8,1.3,null]
+};
+
+// RTS Charts (built lazily on first activate)
+let rtsChartsBuilt = false;
+function buildRTSCharts() {
+  if (rtsChartsBuilt) return;
+  rtsChartsBuilt = true;
+
+  // 1. Revenue comparison: P21 vs NetSuite side-by-side grouped bars
+  new Chart(document.getElementById('rtsSalesTrend'),{
+    type:'bar',
+    data:{labels:MONTH_LABELS,datasets:[
+      {label:'P21 Revenue',data:RTS.p21_sales,backgroundColor:'rgba(37,99,235,.65)',borderColor:'#2563eb',borderWidth:1,borderRadius:3},
+      {label:'NetSuite (EC) Revenue',data:RTS.ns_sales,backgroundColor:'rgba(16,185,129,.7)',borderColor:'#059669',borderWidth:1,borderRadius:3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},
+      scales:{
+        y:{ticks:{font:{size:9},callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#f3f4f6'},title:{display:true,text:'Revenue ($)',font:{size:9}}},
+        x:{ticks:{font:{size:9}}}
+      }}
+  });
+
+  // 2. Lead time: RTS vs Non-RTS Re-Certified
+  new Chart(document.getElementById('rtsOTRCompare'),{
+    type:'line',
+    data:{labels:MONTH_LABELS,datasets:[
+      {label:'RTS Items (Re-Cert) — Avg Lead Time',data:RTS.rts_lt,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.08)',borderWidth:2.5,pointRadius:4,fill:true,tension:.3},
+      {label:'Non-RTS Re-Certified — Avg Lead Time',data:RTS.nonrts_lt,borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.06)',borderWidth:2,pointRadius:4,fill:false,tension:.3,borderDash:[5,3]}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},
+      scales:{y:{min:0,max:8,ticks:{font:{size:9},callback:v=>v+'d'},grid:{color:'#f3f4f6'},title:{display:true,text:'Avg Lead Time (days)',font:{size:9}}},x:{ticks:{font:{size:9}}}}}
+  });
+
+  // 3. Top 15 items: grouped P21 vs NS revenue
+  new Chart(document.getElementById('rtsTopItems'),{
+    type:'bar',
+    data:{labels:RTS.top15_labels,datasets:[
+      {label:'P21 Revenue',data:RTS.top15_p21,backgroundColor:'rgba(37,99,235,.65)',borderWidth:1,borderRadius:2},
+      {label:'NetSuite Revenue',data:RTS.top15_ns,backgroundColor:'rgba(16,185,129,.75)',borderWidth:1,borderRadius:2}
+    ]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},
+      scales:{x:{ticks:{font:{size:9},callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#f3f4f6'}},y:{ticks:{font:{size:9}}}}}
+  });
+
+  // ── GAP Analysis Charts ──
+  // Only items with open -PT quotes, sorted by quote value desc
+  const gapQuoted = GAP.rows.filter(r => r.q_lines > 0).sort((a,b) => b.q_val - a.q_val);
+
+  // Populate table
+  const tbody = document.getElementById('gapTableBody');
+  tbody.innerHTML = gapQuoted.map(r => {
+    const dot = r.pt_conf_sales > 0 ? '<span style="color:#4ade80" title="Has confirmed PT sales">●</span> ' : '';
+    const cval = r.c_val > 0 ? `$${r.c_val.toLocaleString()}` : '—';
+    const qfmt = `$${r.q_val.toLocaleString()}`;
+    const ptSales  = r.pt_conf_sales  > 0 ? `$${r.pt_conf_sales.toLocaleString()}`  : '—';
+    const newSales = r.new_conf_sales > 0 ? `$${r.new_conf_sales.toLocaleString()}` : '—';
+    return `<tr><td>${dot}<strong>${r.part}</strong></td><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.desc}</td><td>${r.cat}</td><td>${qfmt}</td><td>${r.q_lines}</td><td>${r.q_custs}</td><td>${ptSales}</td><td>${r.c_lines||'—'}</td><td>${newSales}</td></tr>`;
+  }).join('');
+
+  // Top 15 items chart — quote-demand items only, sorted by quote value
+  const top15 = gapQuoted.slice(0,15);
+  new Chart(document.getElementById('gapTopItems').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels: top15.map(r => r.part),
+      datasets:[
+        {label:'Open Quotes ($)', data: top15.map(r=>r.q_val), backgroundColor:'rgba(251,146,60,0.8)', stack:'a'},
+        {label:'Confirmed Sales ($)', data: top15.map(r=>r.c_val), backgroundColor:'rgba(74,222,128,0.85)', stack:'a'}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}},tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString()}}},scales:{x:{stacked:true,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(148,163,184,.1)'}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:10},callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v},grid:{color:'rgba(148,163,184,.1)'}}}}
+  });
+
+  // Category bar chart
+  const cats = GAP.by_cat.slice(0,10);
+  new Chart(document.getElementById('gapByCat').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels: cats.map(r => r.cat.length>22 ? r.cat.substring(0,22)+'…' : r.cat),
+      datasets:[
+        {label:'Quotes ($)', data: cats.map(r=>r.q_val), backgroundColor:'rgba(99,102,241,0.75)'},
+        {label:'Confirmed ($)', data: cats.map(r=>r.c_val), backgroundColor:'rgba(74,222,128,0.8)'}
+      ]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}},tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString()}}},scales:{x:{stacked:true,ticks:{color:'#94a3b8',font:{size:10},callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v},grid:{color:'rgba(148,163,184,.1)'}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(148,163,184,.1)'}}}}
+  });
+
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────
+let curSrc = 'enow', selLoc = 'all', selCat = 'all';
+
+function getData() { return curSrc === 'enow' ? ENOW : EC; }
+
+function getFilteredData() {
+  const D = getData();
+  if (selLoc !== 'all' && D.by_location[selLoc]) return D.by_location[selLoc];
+  if (selCat !== 'all' && D.by_category[selCat]) return D.by_category[selCat];
+  return D.all;
+}
+
+// ─── CHARTS ───────────────────────────────────────────────────────────────
+const monthlyChart = new Chart(document.getElementById('monthlyChart'), {
+  type:'bar', data:{labels:MONTH_LABELS,datasets:[]},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},
+    scales:{
+      y1:{type:'linear',position:'left',min:0,max:105,ticks:{font:{size:9},callback:v=>v<=100?v+'%':''},grid:{color:'#f3f4f6'},title:{display:true,text:'On-Time %',font:{size:9}}},
+      y2:{type:'linear',position:'right',min:0,ticks:{font:{size:9},callback:v=>v+'d'},grid:{display:false},title:{display:true,text:'Days',font:{size:9}}},
+      x:{ticks:{font:{size:9}}}
+    }}
+});
+
+const reqDateChart = new Chart(document.getElementById('reqDateChart'), {
+  type:'bar', data:{labels:MONTH_LABELS,datasets:[]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{min:0,max:105,ticks:{font:{size:9},callback:v=>v<=100?v+'%':''},grid:{color:'#f3f4f6'}},x:{ticks:{font:{size:9}}}}}
+});
+
+// Static ENOW charts
+const enowCatLabels = ['CB-Molded Case','Fuse-Low Volt.','CB-Lug Term.','CB-Rating Plug','CB-Part & Acc.','CB-Trip Units','Switch-Disconn.','CB-Mount. HW','MCC Bucket','None/Other','Switch-Panel','Bus Plug-Fus.'];
+const enowCatOT = [74.7,60.2,63.6,58.7,56.6,56.8,56.2,49.9,48.4,46.9,31.0,23.2];
+const enowCatLT = [1.7,2.7,2.9,4.2,4.1,3.0,3.9,4.7,22.6,11.0,9.1,8.8];
+new Chart(document.getElementById('enowCatOT'),{type:'bar',data:{labels:enowCatLabels,datasets:[{label:'On-Time %',data:enowCatOT,backgroundColor:enowCatOT.map(v=>v>=65?'rgba(22,163,74,.7)':v>=55?'rgba(217,119,6,.7)':'rgba(220,38,38,.7)'),borderWidth:1,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'On-Time Rate by Category',font:{size:11,weight:'bold'}}},scales:{x:{min:0,max:100,ticks:{font:{size:9},callback:v=>v+'%'},grid:{color:'#f3f4f6'}},y:{ticks:{font:{size:9}}}}}});
+new Chart(document.getElementById('enowCatLT'),{type:'bar',data:{labels:enowCatLabels,datasets:[{label:'Avg Lead Time (d)',data:enowCatLT,backgroundColor:enowCatLT.map(v=>v<=3?'rgba(22,163,74,.65)':v<=8?'rgba(217,119,6,.65)':'rgba(220,38,38,.65)'),borderWidth:1,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'Avg Lead Time by Category',font:{size:11,weight:'bold'}}},scales:{x:{min:0,ticks:{font:{size:9},callback:v=>v+'d'},grid:{color:'#f3f4f6'}},y:{ticks:{font:{size:9}}}}}});
+new Chart(document.getElementById('enowLocChart'),{type:'bar',data:{labels:['Loc 93\nJacksonville','Loc 94\nLos Angeles','Loc 95','Loc 96\nMichigan'],datasets:[{type:'bar',label:'On-Time %',data:[82.1,58.1,61.1,36.6],backgroundColor:['rgba(22,163,74,.7)','rgba(217,119,6,.65)','rgba(217,119,6,.65)','rgba(220,38,38,.65)'],borderWidth:1,borderRadius:3,yAxisID:'y1'},{type:'line',label:'Avg Lead Time (d)',data:[0.5,4.9,2.3,11.2],borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.1)',borderWidth:2,pointRadius:5,tension:.3,yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},scales:{y1:{position:'left',min:0,max:100,ticks:{font:{size:9},callback:v=>v+'%'},grid:{color:'#f3f4f6'}},y2:{position:'right',min:0,max:14,ticks:{font:{size:9},callback:v=>v+'d'},grid:{display:false}},x:{ticks:{font:{size:10}}}}}});
+
+// Static EC charts
+const ecCatLabels = ['Circuit Breaker','Motor Control','Automation','Fuse','Pneumatic','Valve','Machine Part','Power Supply','Lighting','Other'];
+const ecCatOT = [60.1,52.9,53.4,53.1,49.1,51.6,51.2,52.9,57.5,58.6];
+const ecCatLT = [2.6,2.6,2.9,2.9,2.4,2.2,2.5,3.3,3.2,5.6];
+new Chart(document.getElementById('ecCatOT'),{type:'bar',data:{labels:ecCatLabels,datasets:[{label:'On-Time %',data:ecCatOT,backgroundColor:ecCatOT.map(v=>v>=65?'rgba(22,163,74,.7)':v>=55?'rgba(217,119,6,.7)':'rgba(220,38,38,.7)'),borderWidth:1,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'On-Time Rate by Category',font:{size:11,weight:'bold'}}},scales:{x:{min:0,max:100,ticks:{font:{size:9},callback:v=>v+'%'},grid:{color:'#f3f4f6'}},y:{ticks:{font:{size:9}}}}}});
+new Chart(document.getElementById('ecCatLT'),{type:'bar',data:{labels:ecCatLabels,datasets:[{label:'Avg Lead Time (d)',data:ecCatLT,backgroundColor:ecCatLT.map(v=>v<=3?'rgba(22,163,74,.65)':v<=5?'rgba(217,119,6,.65)':'rgba(220,38,38,.65)'),borderWidth:1,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'Avg Lead Time by Category',font:{size:11,weight:'bold'}}},scales:{x:{min:0,ticks:{font:{size:9},callback:v=>v+'d'},grid:{color:'#f3f4f6'}},y:{ticks:{font:{size:9}}}}}});
+new Chart(document.getElementById('ecLocChart'),{type:'bar',data:{labels:['Radwell Canada','ARCA','Amer. West','ESH: Monster','P21 – EC.com','Central Breaker','ESH: NABCO','Radwell US','Any Breakers','Santa Clara'],datasets:[{type:'bar',label:'On-Time %',data:[72.1,71.3,64.8,64.5,64.4,64.1,59.6,50.8,36.0,27.1],backgroundColor:[72.1,71.3,64.8,64.5,64.4,64.1,59.6,50.8,36.0,27.1].map(v=>v>=65?'rgba(22,163,74,.7)':v>=50?'rgba(217,119,6,.65)':'rgba(220,38,38,.65)'),borderWidth:1,borderRadius:3,yAxisID:'y1'},{type:'line',label:'Avg Lead Time (d)',data:[3.4,2.9,2.8,3.2,1.8,2.5,1.8,3.0,2.4,2.7],borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.1)',borderWidth:2,pointRadius:5,tension:.3,yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},scales:{y1:{position:'left',min:0,max:100,ticks:{font:{size:9},callback:v=>v+'%'},grid:{color:'#f3f4f6'}},y2:{position:'right',min:0,max:6,ticks:{font:{size:9},callback:v=>v+'d'},grid:{display:false}},x:{ticks:{font:{size:9}}}}}});
+
+// ─── UPDATE ───────────────────────────────────────────────────────────────
+function populateDropdowns() {
+  const D = getData();
+  const locSel = document.getElementById('locSelect');
+  const catSel = document.getElementById('catSelect');
+  const locLabel = document.querySelector('.filter-bar label');
+  if (curSrc === 'enow') {
+    locSel.innerHTML = '<option value="all">All Locations</option>';
+    if (locLabel) locLabel.textContent = 'Location';
+  } else {
+    locSel.innerHTML = '<option value="all">All Vendors</option>';
+    if (locLabel) locLabel.textContent = 'Vendor';
+  }
+  catSel.innerHTML = '<option value="all">All Categories</option>';
+  if (curSrc === 'enow') {
+    [['93','Loc 93 — Jacksonville'],['94','Loc 94 — Los Angeles'],['95','Loc 95'],['96','Loc 96 — Michigan']].forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v; o.textContent=l; locSel.appendChild(o); });
+    [['Circuit Breaker-Molded Case','CB-Molded Case'],['None/Other','None/Other'],['Circuit Breaker-Lug Terminal Kit','CB-Lug Terminal Kit'],['Bus Plug-Fusible','Bus Plug-Fusible'],['Switch-Panel Mount','Switch-Panel Mount'],['Motor Control-MCC Bucket','MCC Bucket']].forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v; o.textContent=l; catSel.appendChild(o); });
+  } else {
+    [
+      ['Radwell International US','Radwell Intl US (24,211 orders)'],
+      ['P21 - Electrical.com','P21 – Electrical.com (6,634)'],
+      ['Electrical Source Holdings : NABCO','ESH: NABCO (3,664)'],
+      ['Any Breakers Inc.','Any Breakers Inc. (1,345)'],
+      ['Santa Clara Systems','Santa Clara Systems (1,056)'],
+      ['Electrical Source Holdings : Monster Electrical','ESH: Monster Electrical (988)'],
+      ['Radwell International Canada','Radwell Intl Canada (944)'],
+      ['American West Surplus','American West Surplus (554)'],
+      ['Central Breaker & Control','Central Breaker & Control (517)'],
+      ['ARCA, Asset Recovery Company of America','ARCA (382)']
+    ].forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v; o.textContent=l; locSel.appendChild(o); });
+    [['Circuit Breaker','Circuit Breaker'],['Motor Control','Motor Control'],['Automation','Automation'],['Fuse','Fuse'],['Pneumatic','Pneumatic']].forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v; o.textContent=l; catSel.appendChild(o); });
+  }
+  selLoc = 'all'; selCat = 'all';
+}
+
+function updateCharts() {
+  const d = getFilteredData();
+  const rp = d.req_pushed_pct;
+
+  monthlyChart.data.datasets = [
+    {type:'line',label:'On-Time Rate (%)',data:d.on_time_rate,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.08)',borderWidth:2.5,pointRadius:3,fill:true,tension:.3,yAxisID:'y1'},
+    {type:'bar',label:'Avg Lead Time (d)',data:d.avg_lead_time,backgroundColor:'rgba(16,185,129,.5)',borderColor:'#059669',borderWidth:1,borderRadius:3,yAxisID:'y2'},
+    {type:'bar',label:'Avg Days Late (d)',data:d.avg_days_late,backgroundColor:'rgba(239,68,68,.45)',borderColor:'#dc2626',borderWidth:1,borderRadius:3,yAxisID:'y2'}
+  ];
+  // Auto-scale y2
+  const maxDays = Math.max(...d.avg_lead_time.concat(d.avg_days_late).filter(v=>v>0));
+  monthlyChart.options.scales.y2.max = Math.ceil(maxDays * 1.3) || 15;
+  monthlyChart.update();
+
+  reqDateChart.data.datasets = [{label:'Future req date (%)',data:rp,backgroundColor:rp.map(v=>v>20?'rgba(124,58,237,.65)':'rgba(167,139,250,.45)'),borderColor:'#7c3aed',borderWidth:1,borderRadius:3}];
+  reqDateChart.update();
+
+  // Context label
+  const lEl = document.getElementById('locSelect');
+  const cEl = document.getElementById('catSelect');
+  const lTxt = lEl.options[lEl.selectedIndex]?.text || 'All';
+  const cTxt = cEl.options[cEl.selectedIndex]?.text || 'All';
+  document.getElementById('filterCtx').textContent = `Showing: ${lTxt} · ${cTxt}`;
+
+  // KPIs
+  const tot = d.total_orders.reduce((a,b)=>a+b,0);
+  const shp = d.shipped.reduce((a,b)=>a+b,0);
+  const ont = d.on_time.reduce((a,b)=>a+b,0);
+  const lte = d.late.reduce((a,b)=>a+b,0);
+  const otr = (ont+lte)>0 ? (ont/(ont+lte)*100).toFixed(1) : '—';
+  const ltArr = d.avg_lead_time.filter(v=>v>0);
+  const dlArr = d.avg_days_late.filter(v=>v>0);
+  document.getElementById('kpiOrders').textContent = tot.toLocaleString();
+  document.getElementById('kpiShipped').textContent = shp.toLocaleString();
+  document.getElementById('kpiShippedPct').textContent = tot>0 ? (shp/tot*100).toFixed(1)+'% of orders' : '';
+  document.getElementById('kpiOTR').textContent = otr+'%';
+  document.getElementById('kpiOTRHint').textContent = `${ont.toLocaleString()} of ${(ont+lte).toLocaleString()}`;
+  document.getElementById('kpiLT').textContent = ltArr.length ? (ltArr.reduce((a,b)=>a+b,0)/ltArr.length).toFixed(1)+'d' : '—';
+  document.getElementById('kpiDL').textContent = dlArr.length ? (dlArr.reduce((a,b)=>a+b,0)/dlArr.length).toFixed(1)+'d' : '—';
+}
+
+function buildTable() {
+  const rows = curSrc === 'enow' ? ENOW_TABLE_ROWS : EC_TABLE_ROWS;
+  const hdr = curSrc === 'enow'
+    ? '<tr><th>Month</th><th>Orders</th><th>Shipped</th><th>On-Time</th><th>Late</th><th>On-Time %</th><th>Avg LT</th><th>Avg Days Late</th><th>Req Pushed %</th></tr>'
+    : '<tr><th>Month</th><th>Orders</th><th>Shipped</th><th>On-Time</th><th>Late</th><th>On-Time %</th><th>Avg LT</th><th>Avg Days Late</th><th>Est. Ship Date Set %</th></tr>';
+  const body = rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td><span class="pill ${r[5]}">${r[6]}</span></td><td>${r[7]}</td><td>${r[8]}</td><td>${r[9]}</td></tr>`).join('');
+  document.getElementById('monthlyTableWrap').innerHTML = `<table>${hdr}${body}</table>`;
+}
+
+function updateInsights() {
+  if (curSrc === 'enow') {
+    document.getElementById('trendInsight').innerHTML = '<strong>Trend:</strong> On-time rate improved from ~62% in early 2025 to <strong>77% in Aug 2026</strong>. Avg days late on late orders dropped from 8–9 days to 2–3 days — consistent improvement across the period.';
+    document.getElementById('trendInsight').className = 'insight';
+    document.getElementById('reqInsight').innerHTML = '<strong>Growing usage:</strong> Future required dates grew from 3% → ~30%, indicating the team is planning ahead more. Same-day required dates remain the majority (~72% overall).';
+    document.getElementById('monthlyTableTitle').textContent = 'ENOW — Monthly Detail';
+    document.getElementById('monthlyTableDesc').textContent = 'Full breakdown Jan 2025–Aug 2026 (locations 93–96)';
+    document.getElementById('trendDesc').textContent = 'On-time = Invoice Date ≤ Required Date  ·  Lead time = Invoice Date − Order Date';
+    document.getElementById('reqDateTitle').textContent = 'Required Date Set in Future (%)';
+  } else {
+    document.getElementById('trendInsight').innerHTML = '⚠️ <strong>Declining trend:</strong> EC on-time rate has been <strong>falling</strong> since mid-2025 (72% in May 2025 → ~42% in Aug 2026). Avg days late is very low (1.5d) so orders are mostly just barely missing. The Dec 2025 and Jul/Aug 2026 dips are the sharpest — worth investigating with the fulfillment team.';
+    document.getElementById('trendInsight').className = 'insight amber';
+    document.getElementById('reqInsight').innerHTML = '<strong>Consistently high:</strong> 65–70% of EC orders have a future Estimated Ship Date set — much higher than early ENOW. This means on-time tracking is more meaningful here than for ENOW (where most required dates were same-day).';
+    document.getElementById('monthlyTableTitle').textContent = 'Electrical.com — Monthly Detail';
+    document.getElementById('monthlyTableDesc').textContent = 'Full breakdown Jan 2025–Aug 2026 (ENOW-fulfilled orders excluded)';
+    document.getElementById('trendDesc').textContent = 'On-time = Last Invoice Date ≤ Estimated Ship Date  ·  Lead time = Invoice Date − SO Date';
+    document.getElementById('reqDateTitle').textContent = 'Estimated Ship Date Set in Future (%)';
+  }
+}
+
+// ─── SOURCE TOGGLE ────────────────────────────────────────────────────────
+function setSource(src) {
+  curSrc = src;
+  document.getElementById('tabENOW').classList.toggle('active', src==='enow');
+  document.getElementById('tabEC').classList.toggle('active', src==='ec');
+  document.getElementById('tabRTS').classList.toggle('active', src==='rts');
+  document.getElementById('alertENOW').classList.toggle('show', src==='enow');
+  document.getElementById('alertEC').classList.toggle('show', src==='ec');
+  document.getElementById('alertRTS').classList.toggle('show', src==='rts');
+  document.getElementById('panelENOW').classList.toggle('active', src==='enow');
+  document.getElementById('panelEC').classList.toggle('active', src==='ec');
+  document.getElementById('panelRTS').classList.toggle('active', src==='rts');
+  // Hide trend charts + filter + monthly table when RTS
+  const isRTS = src==='rts';
+  document.querySelector('.filter-bar').style.display = isRTS ? 'none' : '';
+  document.querySelector('.row2').style.display = isRTS ? 'none' : '';
+  document.getElementById('monthlyTableCard').style.display = isRTS ? 'none' : '';
+  if (isRTS) {
+    document.getElementById('headerSub').textContent = 'RTS Analysis — 546 pre-stocked Refurb/Reconditioned items  ·  Jan 2025 – Aug 2026';
+    buildRTSCharts();
+    return;
+  }
+  document.getElementById('headerSub').textContent = src==='enow'
+    ? 'ENOW — Jan 2025 – Aug 2026  ·  Locations 93, 94, 95, 96  ·  As of 8/23/2026'
+    : 'Electrical.com — Jan 2025 – Aug 2026  ·  ENOW-fulfilled orders excluded  ·  As of 8/24/2026';
+  populateDropdowns();
+  updateInsights();
+  updateCharts();
+  buildTable();
+}
+
+function onFilterChange() {
+  selLoc = document.getElementById('locSelect').value;
+  selCat = document.getElementById('catSelect').value;
+  updateCharts();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+setSource('enow');
+</script>
+</body>
+</html>
