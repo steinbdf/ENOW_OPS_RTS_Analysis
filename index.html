@@ -248,6 +248,28 @@ tr:last-child td { border-bottom: none; }
 
   <!-- RTS Panel -->
   <div class="panel" id="panelRTS">
+    <!-- RTS Filters -->
+    <div id="rtsFilterBar" style="display:none;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:12px;color:#94a3b8;font-weight:600">FILTER P21:</span>
+        <select id="rtsLocSel" onchange="updateRTSFilter()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">
+          <option value="all">All Locations</option>
+          <option value="Jacksonville">Jacksonville</option>
+          <option value="Santa Fe Springs">Santa Fe Springs</option>
+          <option value="Michigan">Michigan</option>
+        </select>
+        <select id="rtsCatSel" onchange="updateRTSFilter()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">
+          <option value="all">All Categories</option>
+          <option value="Circuit Breaker-Molded Case">Circuit Breaker-Molded Case</option>
+          <option value="Bus Plug-Fusible">Bus Plug-Fusible</option>
+          <option value="Switch-Panel Mount">Switch-Panel Mount</option>
+          <option value="Motor Control-MCC Bucket">Motor Control-MCC Bucket</option>
+          <option value="Motor Control-Part And Accessory">Motor Control-Part And Accessory</option>
+          <option value="Uncategorized">Uncategorized</option>
+        </select>
+        <span id="rtsFilterNote" style="font-size:11px;color:#64748b;font-style:italic">Filters apply to P21 revenue only - NetSuite line shows all items</span>
+      </div>
+    </div>
     <!-- RTS KPIs -->
     <div class="kpi-row" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
       <div class="kpi purple"><div class="lbl">P21 RTS Revenue</div><div class="val">$2.31M</div><div class="hint">Jan 2025 – Aug 2026</div></div>
@@ -463,7 +485,11 @@ const RTS = {
   top15_labels: ['SFLA36AT0250','SB420SGL4GF+','SQDM6BF400','BOS14353','QMB367W','SGLA36AT0400','SKLA36AT0800','FDPW367','SKLA36AT1200','PQ4603G','SB465RG','PQ3610G','SGLA36AT0600','SELA36AT0100','FVK465RT'],
   top15_p21: [91342,67600,42500,38450,38360,35365,35150,34965,33375,31454,31380,29845,27610,24980,23895],
   top15_ns:  [21101,0,0,0,0,1210,25573,0,6644,0,0,12382,8777,1636,0],
-  top15_lt:  [1.8,null,null,null,null,2.0,4.3,null,2.5,null,null,5.6,12.8,1.3,null]
+  top15_lt:  [1.8,null,null,null,null,2.0,4.3,null,2.5,null,null,5.6,12.8,1.3,null],
+  by_loc: {"Jacksonville":[25882.0,25608.0,33120.0,34192.0,32356.0,39811.0,35997.0,33725.0,31164.0,27299.0,15117.0,26285.0,26908.0,24911.0,25415.0,20631.0,21831.0,37213.0,29788.0,32027.0],"Santa Fe Springs":[37965.0,27818.0,37597.0,47226.0,43270.0,63190.0,63568.0,56233.0,56095.0,46504.0,35922.0,31356.0,32669.0,36090.0,42598.0,34932.0,41160.0,36663.0,32252.0,26678.0],"Michigan":[0.0,0.0,0.0,0.0,0.0,14859.0,16887.0,10442.0,15752.0,14541.0,12746.0,11844.0,20994.0,14202.0,10008.0,9952.0,11921.0,8268.0,10307.0,5534.0]},
+  by_cat: {"Circuit Breaker-Molded Case":[67413.0,56429.0,76046.0,88120.0,78234.0,104335.0,99476.0,85718.0,92056.0,76919.0,52702.0,61708.0,67611.0,65861.0,65127.0,58508.0,63460.0,77323.0,64825.0,59838.0],"Uncategorized":[450.0,5263.0,2540.0,1510.0,2500.0,6081.0,6692.0,6340.0,3960.0,1925.0,3113.0,830.0,2788.0,950.0,5813.0,1935.0,1715.0,0.0,945.0,350.0],"Bus Plug-Fusible":[526.0,3221.0,0.0,25.0,950.0,4090.0,4685.0,1945.0,4743.0,2010.0,365.0,995.0,4513.0,3247.0,1466.0,3072.0,3715.0,1625.0,4045.0,1016.0],"Switch-Panel Mount":[0.0,1521.0,1093.0,199.0,1188.0,795.0,921.0,2440.0,1366.0,1675.0,1711.0,3752.0,994.0,717.0,2635.0,0.0,3252.0,871.0,1507.0,2610.0],"Motor Control-MCC Bucket":[885.0,1360.0,0.0,1450.0,0.0,1200.0,1150.0,2390.0,175.0,3400.0,560.0,0.0,2105.0,232.0,1255.0,150.0,1600.0,1575.0,0.0,0.0],"Motor Control-Part And Accessory":[0.0,0.0,0.0,0.0,0.0,1090.0,2285.0,700.0,125.0,1170.0,1050.0,300.0,1120.0,1750.0,0.0,1525.0,1170.0,350.0,0.0,425.0]},
+  locs: ["Jacksonville", "Santa Fe Springs", "Michigan"],
+  cats: ["Circuit Breaker-Molded Case", "Uncategorized", "Bus Plug-Fusible", "Switch-Panel Mount", "Motor Control-MCC Bucket", "Motor Control-Part And Accessory"]
 };
 
 // RTS Charts (built lazily on first activate)
@@ -473,7 +499,7 @@ function buildRTSCharts() {
   rtsChartsBuilt = true;
 
   // 1. Revenue comparison: P21 vs NetSuite side-by-side grouped bars
-  new Chart(document.getElementById('rtsSalesTrend'),{
+  window._rtsSalesChart = new Chart(document.getElementById('rtsSalesTrend'),{
     type:'bar',
     data:{labels:MONTH_LABELS,datasets:[
       {label:'P21 Revenue',data:RTS.p21_sales,backgroundColor:'rgba(37,99,235,.65)',borderColor:'#2563eb',borderWidth:1,borderRadius:3},
@@ -554,6 +580,35 @@ function buildRTSCharts() {
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}},tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString()}}},scales:{x:{stacked:true,ticks:{color:'#94a3b8',font:{size:10},callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v},grid:{color:'rgba(148,163,184,.1)'}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(148,163,184,.1)'}}}}
   });
 
+}
+
+function updateRTSFilter() {
+  const loc = document.getElementById('rtsLocSel').value;
+  const cat = document.getElementById('rtsCatSel').value;
+  if (!window._rtsSalesChart) return;
+
+  let p21data;
+  if (loc !== 'all' && cat !== 'all' && RTS.by_loc[loc] && RTS.by_cat[cat]) {
+    const totalAll = RTS.p21_sales.reduce((a,b)=>a+b,0) || 1;
+    const locShare = RTS.by_loc[loc].reduce((a,b)=>a+b,0) / totalAll;
+    p21data = RTS.by_cat[cat].map(v => Math.round(v * locShare));
+  } else if (loc !== 'all' && RTS.by_loc[loc]) {
+    p21data = RTS.by_loc[loc];
+  } else if (cat !== 'all' && RTS.by_cat[cat]) {
+    p21data = RTS.by_cat[cat];
+  } else {
+    p21data = RTS.p21_sales;
+  }
+  window._rtsSalesChart.data.datasets[0].data = p21data;
+  window._rtsSalesChart.update();
+
+  const parts = [];
+  if (loc !== 'all') parts.push(loc);
+  if (cat !== 'all') parts.push(cat);
+  const note = document.getElementById('rtsFilterNote');
+  note.textContent = parts.length
+    ? 'Filtered: ' + parts.join(' / ') + ' - NetSuite line shows all items'
+    : 'Filters apply to P21 revenue only - NetSuite line shows all items';
 }
 
 // ─── STATE ────────────────────────────────────────────────────────────────
@@ -722,6 +777,7 @@ function setSource(src) {
   // Hide trend charts + filter + monthly table when RTS
   const isRTS = src==='rts';
   document.querySelector('.filter-bar').style.display = isRTS ? 'none' : '';
+  const rfb = document.getElementById('rtsFilterBar'); if(rfb) rfb.style.display = isRTS ? '' : 'none';
   document.querySelector('.row2').style.display = isRTS ? 'none' : '';
   document.getElementById('monthlyTableCard').style.display = isRTS ? 'none' : '';
   if (isRTS) {
