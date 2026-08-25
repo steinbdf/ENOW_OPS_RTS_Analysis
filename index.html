@@ -95,13 +95,13 @@ tr:last-child td { border-bottom: none; }
 
   <!-- Alerts -->
   <div class="alert blue" id="alertRTS">
-    ℹ️ <strong>RTS (Ready to Ship) Analysis:</strong> 546 Refurbished/Reconditioned items pre-stocked to reduce lead time. P21 revenue: <strong>$2.31M</strong> · NetSuite/EC revenue: <strong>$468K (20%)</strong>. RTS items average <strong>3.5d lead time vs 4.2d</strong> for non-RTS Re-Certified on EC — pre-stocking demonstrably reduces fulfillment time. <strong>353 items</strong> have P21 sales but zero EC sales — a listing and revenue gap worth closing.
+    ℹ️ <strong>RTS (Ready to Ship) Analysis:</strong> 546 Refurbished/Reconditioned items pre-stocked to reduce lead time. P21 revenue: <strong>$2.31M</strong> · NetSuite/ECOM revenue: <strong>$468K (20%)</strong>. RTS items average <strong>3.5d lead time vs 4.2d</strong> for non-RTS Re-Certified on ECOM — pre-stocking demonstrably reduces fulfillment time. <strong>353 items</strong> have P21 sales but zero ECOM sales — a listing and revenue gap worth closing.
   </div>
   <div class="alert yellow show" id="alertENOW">
     ⚠️ <strong>Required Date Note (ENOW):</strong> 82.1% of orders have Required Date = Order Date (same-day target). The share of orders with a future required date has grown from ~3% in early 2025 to ~25–30% by mid-2026, suggesting improving planning. Orders with a future required date averaged 12.9 days lead time.
   </div>
   <div class="alert blue" id="alertEC">
-    ℹ️ <strong>Electrical.com data:</strong> 6,569 orders fulfilled by ENOW Santa Fe Springs, ENOW Jacksonville, and ENOW Michigan have been excluded as duplicates. The remaining 48,018 orders are uniquely Electrical.com. ~65–70% of EC orders have a future Estimated Ship Date set (vs. 82% same-day on ENOW), making on-time measurement more meaningful here. <strong>Note:</strong> On-time rate has been declining in 2026 — worth investigating.
+    ℹ️ <strong>Electrical.com data:</strong> 6,569 orders fulfilled by ENOW Santa Fe Springs, ENOW Jacksonville, and ENOW Michigan have been excluded as duplicates. The remaining 48,018 orders are uniquely Electrical.com. ~65–70% of ECOM orders have a future Estimated Ship Date set (vs. 82% same-day on ENOW), making on-time measurement more meaningful here. <strong>Note:</strong> On-time rate has been declining in 2026 — worth investigating.
   </div>
 
   <!-- KPI Row -->
@@ -224,7 +224,7 @@ tr:last-child td { border-bottom: none; }
           <tr><td>Central Breaker &amp; Control</td><td>517</td><td><span class="pill a">64.1%</span></td><td>2.5d</td><td>1.7d</td></tr>
           <tr><td>ARCA</td><td>382</td><td><span class="pill g">71.3%</span></td><td>2.9d</td><td>1.5d</td></tr>
         </table>
-        <div class="insight amber" style="margin-top:10px"><strong>Radwell International US</strong> (51% of all EC orders) is the primary drag at 50.8% on-time. <strong>Santa Clara Systems</strong> and <strong>Any Breakers</strong> are the lowest performers at 27% and 36%. <strong>Radwell Canada</strong> (72%) and <strong>ARCA</strong> (71%) are standouts. Use the Vendor dropdown above to drill into any single supplier's monthly trend.</div>
+        <div class="insight amber" style="margin-top:10px"><strong>Radwell International US</strong> (51% of all ECOM orders) is the primary drag at 50.8% on-time. <strong>Santa Clara Systems</strong> and <strong>Any Breakers</strong> are the lowest performers at 27% and 36%. <strong>Radwell Canada</strong> (72%) and <strong>ARCA</strong> (71%) are standouts. Use the Vendor dropdown above to drill into any single supplier's monthly trend.</div>
       </div>
     </div>
     <div class="card" style="margin-bottom:14px">
@@ -273,8 +273,8 @@ tr:last-child td { border-bottom: none; }
     <!-- RTS KPIs -->
     <div class="kpi-row" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
       <div class="kpi purple"><div class="lbl">P21 RTS Revenue</div><div class="val">$2.31M</div><div class="hint">Jan 2025 – Aug 2026</div></div>
-      <div class="kpi green"><div class="lbl">NetSuite (EC) Revenue</div><div class="val">$468K</div><div class="hint">~20% of P21 channel</div></div>
-      <div class="kpi"><div class="lbl">RTS Items w/ EC Sales</div><div class="val">193 / 546</div><div class="hint">353 items not yet on EC</div></div>
+      <div class="kpi green"><div class="lbl">NetSuite (ECOM) Revenue</div><div class="val">$468K</div><div class="hint">~20% of P21 channel</div></div>
+      <div class="kpi"><div class="lbl">RTS Items w/ ECOM Sales</div><div class="val">193 / 546</div><div class="hint">353 items not yet on ECOM</div></div>
       <div class="kpi green"><div class="lbl">RTS Avg Lead Time</div><div class="val">3.5d</div><div class="hint">vs 4.2d non-RTS Re-Cert</div></div>
       <div class="kpi amber"><div class="lbl">Lead Time Advantage</div><div class="val">−0.7d</div><div class="hint">Pre-stock = faster fulfillment</div></div>
     </div>
@@ -282,13 +282,13 @@ tr:last-child td { border-bottom: none; }
     <!-- Revenue comparison + Lead time -->
     <div class="row2" style="margin-bottom:14px">
       <div class="card">
-        <h2>Monthly Revenue: P21 vs NetSuite (EC)</h2>
+        <h2>Monthly Revenue: P21 vs NetSuite (ECOM)</h2>
         <div class="desc">P21 = all channels · NetSuite = Electrical.com orders for matching RTS parts</div>
         <div style="position:relative;height:235px"><canvas id="rtsSalesTrend"></canvas></div>
-        <div class="insight">P21 peaked at <strong>$216K in Jun 2025</strong> and has trended down to ~$80–110K/mo. NetSuite EC revenue is <strong>$468K total (20% of P21)</strong> — low penetration given 546 pre-stocked items. NetSuite picked up in Jul 2026 ($39K), the highest EC month yet.</div>
+        <div class="insight">P21 peaked at <strong>$216K in Jun 2025</strong> and has trended down to ~$80–110K/mo. NetSuite ECOM revenue is <strong>$468K total (20% of P21)</strong> — low penetration given 546 pre-stocked items. NetSuite picked up in Jul 2026 ($39K), the highest EC month yet.</div>
       </div>
       <div class="card">
-        <h2>Avg Lead Time: RTS Items vs Non-RTS Re-Certified (EC)</h2>
+        <h2>Avg Lead Time: RTS Items vs Non-RTS Re-Certified (ECOM)</h2>
         <div class="desc">Does pre-stocking actually reduce fulfillment time on Electrical.com?</div>
         <div style="position:relative;height:235px"><canvas id="rtsOTRCompare"></canvas></div>
         <div class="insight amber">RTS items averaged <strong>1–2d faster</strong> through most of 2025 (blue below gold). That gap has narrowed in 2026 — non-RTS Re-Cert lead times have also improved. Oct 2025 and May–Jul 2026 spikes on RTS side worth investigating (may indicate stock-outs forcing drop-ship).</div>
@@ -299,13 +299,13 @@ tr:last-child td { border-bottom: none; }
     <div class="row3" style="margin-bottom:14px">
       <div class="card">
         <h2>Top 15 RTS Items — P21 vs NetSuite Revenue</h2>
-        <div class="desc">Jan 2025 – Aug 2026 · blue = P21 all channels · green = NetSuite/EC channel</div>
+        <div class="desc">Jan 2025 – Aug 2026 · blue = P21 all channels · green = NetSuite/ECOM channel</div>
         <div style="position:relative;height:320px"><canvas id="rtsTopItems"></canvas></div>
         <div class="insight" style="margin-top:8px">Most high-P21-revenue items have <strong>zero NetSuite sales</strong> — they're selling through P21 channels only. SFLA36AT0250 is the exception ($21K NS vs $91K P21). SKLA36AT0800 has a high NS share ($26K of $35K P21) but a 4.3d lead time despite being RTS.</div>
       </div>
       <div class="card">
-        <h2>Top EC Opportunity — RTS Items Not on Electrical.com</h2>
-        <div class="desc">353 items with P21 sales history not yet sold on EC · top 10 by P21 revenue</div>
+        <h2>RTS Items Not Sold on Electrical.com</h2>
+        <div class="desc">353 items with P21 sales history not yet sold on ECOM · top 10 by P21 revenue</div>
         <table style="margin-top:4px">
           <tr><th>P21 Code</th><th>Description</th><th>P21 Sales</th><th>P21 Qty</th></tr>
           <tr><td>SB420SGL4GF+</td><td>GE 200A 600V Bus Plug</td><td>$67,600</td><td>4</td></tr>
@@ -326,9 +326,9 @@ tr:last-child td { border-bottom: none; }
     <!-- RTS EC detail table -->
     <div class="card" style="margin-bottom:14px">
       <h2>Top RTS Items Selling on Electrical.com — Revenue &amp; Lead Time</h2>
-      <div class="desc">193 RTS items with at least one EC order · sorted by EC orders</div>
+      <div class="desc">193 RTS items with at least one ECOM order · sorted by ECOM orders</div>
       <table>
-        <tr><th>Part (Base)</th><th>EC Orders</th><th>NetSuite Rev</th><th>Avg Lead Time</th><th>P21 Description</th><th>P21 Revenue</th></tr>
+        <tr><th>Part (Base)</th><th>ECOM Orders</th><th>NetSuite Rev</th><th>Avg Lead Time</th><th>P21 Description</th><th>P21 Revenue</th></tr>
         <tr><td>SFLA36AT0250</td><td>12</td><td>$21,101</td><td><span class="pill g">1.8d</span></td><td>3P-600V-250A CB</td><td>$91,342</td></tr>
         <tr><td>EDB34050</td><td>9</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
         <tr><td>FXD63B200</td><td>7</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
@@ -340,7 +340,7 @@ tr:last-child td { border-bottom: none; }
         <tr><td>SELA36AT0100</td><td>6</td><td>$1,636</td><td><span class="pill g">1.3d</span></td><td>3P-600V-100A CB</td><td>$24,980</td></tr>
         <tr><td>SKLA36AT0800</td><td>4</td><td>$25,573</td><td><span class="pill a">4.3d</span></td><td>3P-600V-800A CB</td><td>$35,150</td></tr>
       </table>
-      <div class="insight" style="margin-top:8px">PQ3610G and SGLA36AT0600 have elevated lead times (5–13d) despite being RTS — suggest verifying stock availability. SELA36AT0100 and SFLA36AT0250 are the strongest performers: fast lead time and solid EC revenue.</div>
+      <div class="insight" style="margin-top:8px">PQ3610G and SGLA36AT0600 have elevated lead times (5–13d) despite being RTS — suggest verifying stock availability. SELA36AT0100 and SFLA36AT0250 are the strongest performers: fast lead time and solid ECOM revenue.</div>
     </div>
     <!-- RTS Gap Analysis Section -->
     <div id="gapSection" style="margin-top:6px">
@@ -503,7 +503,7 @@ function buildRTSCharts() {
     type:'bar',
     data:{labels:MONTH_LABELS,datasets:[
       {label:'P21 Revenue',data:RTS.p21_sales,backgroundColor:'rgba(37,99,235,.65)',borderColor:'#2563eb',borderWidth:1,borderRadius:3},
-      {label:'NetSuite (EC) Revenue',data:RTS.ns_sales,backgroundColor:'rgba(16,185,129,.7)',borderColor:'#059669',borderWidth:1,borderRadius:3}
+      {label:'NetSuite (ECOM) Revenue',data:RTS.ns_sales,backgroundColor:'rgba(16,185,129,.7)',borderColor:'#059669',borderWidth:1,borderRadius:3}
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
       plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},
@@ -752,9 +752,9 @@ function updateInsights() {
     document.getElementById('trendDesc').textContent = 'On-time = Invoice Date ≤ Required Date  ·  Lead time = Invoice Date − Order Date';
     document.getElementById('reqDateTitle').textContent = 'Required Date Set in Future (%)';
   } else {
-    document.getElementById('trendInsight').innerHTML = '⚠️ <strong>Declining trend:</strong> EC on-time rate has been <strong>falling</strong> since mid-2025 (72% in May 2025 → ~42% in Aug 2026). Avg days late is very low (1.5d) so orders are mostly just barely missing. The Dec 2025 and Jul/Aug 2026 dips are the sharpest — worth investigating with the fulfillment team.';
+    document.getElementById('trendInsight').innerHTML = '⚠️ <strong>Declining trend:</strong> ECOM on-time rate has been <strong>falling</strong> since mid-2025 (72% in May 2025 → ~42% in Aug 2026). Avg days late is very low (1.5d) so orders are mostly just barely missing. The Dec 2025 and Jul/Aug 2026 dips are the sharpest — worth investigating with the fulfillment team.';
     document.getElementById('trendInsight').className = 'insight amber';
-    document.getElementById('reqInsight').innerHTML = '<strong>Consistently high:</strong> 65–70% of EC orders have a future Estimated Ship Date set — much higher than early ENOW. This means on-time tracking is more meaningful here than for ENOW (where most required dates were same-day).';
+    document.getElementById('reqInsight').innerHTML = '<strong>Consistently high:</strong> 65–70% of ECOM orders have a future Estimated Ship Date set — much higher than early ENOW. This means on-time tracking is more meaningful here than for ENOW (where most required dates were same-day).';
     document.getElementById('monthlyTableTitle').textContent = 'Electrical.com — Monthly Detail';
     document.getElementById('monthlyTableDesc').textContent = 'Full breakdown Jan 2025–Aug 2026 (ENOW-fulfilled orders excluded)';
     document.getElementById('trendDesc').textContent = 'On-time = Last Invoice Date ≤ Estimated Ship Date  ·  Lead time = Invoice Date − SO Date';
