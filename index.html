@@ -406,11 +406,20 @@ tr:last-child td { border-bottom: none; }
     <!-- Assembly Consumption Section -->
     <div id="assemblySection" style="margin-top:14px;display:none">
       <div class="card" style="margin-bottom:14px">
-        <h2>RTS Items Used in Assemblies &amp; Sales Orders — Monthly Consumption</h2>
-        <div class="desc">Qty of RTS items pulled from inventory for assemblies, disassembly, or tagged sales orders (Jan 2022–Jun 2026) · <em>Sales Orders–RNT tagging started Nov 2025</em></div>
-        <div style="position:relative;height:260px;margin-top:10px"><canvas id="asmTrendChart"></canvas></div>
+        <h2>RTS Items — Individual Sales vs. Assembly Consumption</h2>
+        <div class="desc">Jan 2025 – Aug 2026 · Individual sales = revenue from ENOW P21 orders · Assembly consumption = cost of RTS items pulled from stock · <em>Sales Orders–RNT tagging started Nov 2025</em></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#94a3b8;margin-bottom:6px">REVENUE vs. CONSUMPTION COST ($)</div>
+            <div style="position:relative;height:240px"><canvas id="asmTrendChart"></canvas></div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#94a3b8;margin-bottom:6px">UNITS CONSUMED — REASON CODE BREAKDOWN</div>
+            <div style="position:relative;height:240px"><canvas id="asmUnitsChart"></canvas></div>
+          </div>
+        </div>
         <div class="insight" style="margin-top:10px">
-          Through Oct 2025, all pulls were coded <strong>Assembly/Disassembly</strong> (legacy tag). Starting Nov 2025, <strong>Sales Orders–RNT</strong> became the active code and is now the majority — reflecting better tagging hygiene going forward. Watch whether total RTS consumption (blue + teal) trends up or down relative to individual part sales.
+          Individual sales revenue consistently outpaces assembly consumption cost — a healthy sign. Watch for months where consumption cost spikes (Sep–Oct 2025: $56K consumed) which may reduce available stock for direct sales. Since Nov 2025 the <strong>Sales Orders–RNT</strong> code has replaced Assembly/Disassembly for sales-order pulls, improving visibility going forward.
         </div>
       </div>
       <div class="card">
@@ -534,10 +543,13 @@ const RTS = {
 };
 
 const ASM = {
-  labels: ["Jan '22","Feb '22","Mar '22","Apr '22","May '22","Jun '22","Jul '22","Aug '22","Sep '22","Oct '22","Nov '22","Dec '22","Jan '23","Feb '23","Mar '23","Apr '23","May '23","Jun '23","Jul '23","Aug '23","Sep '23","Oct '23","Nov '23","Dec '23","Jan '24","Feb '24","Mar '24","Apr '24","May '24","Jun '24","Jul '24","Aug '24","Sep '24","Oct '24","Nov '24","Dec '24","Jan '25","Feb '25","Mar '25","Apr '25","May '25","Jun '25","Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25","Jan '26","Feb '26","Mar '26","Apr '26","May '26","Jun '26"],
-  non_rts: [354,284,525,993,439,438,625,696,1011,655,428,567,582,526,1065,488,717,595,666,424,537,1031,375,997,628,625,1064,841,1448,576,782,799,1183,677,790,708,1266,710,419,1190,859,1104,659,856,778,858,994,760,824,768,863,874,1056,959],
-  rts_asm: [36,73,41,129,74,74,154,55,127,49,49,145,96,71,87,74,99,91,29,69,57,105,54,59,120,74,104,64,99,80,135,90,71,65,93,209,74,58,72,133,112,95,103,97,161,159,87,39,19,12,5,10,52,44],
-  rts_so:  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,55,81,68,82,107,83,90,102],
+  labels:     ["Jan '25","Feb '25","Mar '25","Apr '25","May '25","Jun '25","Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25","Jan '26","Feb '26","Mar '26","Apr '26","May '26","Jun '26","Jul '26","Aug '26"],
+  ind_rev:    [82429,72863,58811,73828,99688,241350,254380,186681,150667,104080,94170,112864,91413,115889,133903,149982,143727,129541,153942,93990],
+  ind_lines:  [75,148,80,95,96,153,183,140,163,122,90,84,98,109,104,100,118,106,119,96],
+  asm_cost:   [25413,14342,37151,25972,38499,21223,21976,11894,23012,55925,33436,22792,24916,41857,48543,16440,38640,28473,0,0],
+  asm_units:  [74,58,72,133,112,95,103,97,161,159,142,120,87,94,112,93,142,146,0,0],
+  asm_asm:    [74,58,72,133,112,95,103,97,161,159,87,39,19,12,5,10,52,44,0,0],
+  asm_so:     [0,0,0,0,0,0,0,0,0,0,55,81,68,82,107,83,90,102,0,0],
   top_labels: ["HMCP015E0C","SIEM95SMINSERT","SELA36AT0030","SELA36AT0100","HMCP050K2C","SELA36AT0060","SEDA36AT0030","BOS14351","HFD3050","SELA36AI0030"],
   top_qty:    [266,219,217,208,173,169,149,148,143,122]
 };
@@ -630,15 +642,33 @@ function buildRTSCharts() {
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}},tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString()}}},scales:{x:{stacked:true,ticks:{color:'#94a3b8',font:{size:10},callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v},grid:{color:'rgba(148,163,184,.1)'}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(148,163,184,.1)'}}}}
   });
 
-  // 4. Assembly Consumption trend (stacked bar)
+  // 4a. Dollar comparison: individual sales revenue vs assembly consumption cost
   new Chart(document.getElementById('asmTrendChart'), {
     type: 'bar',
     data: {
       labels: ASM.labels,
       datasets: [
-        {label:'Non-RTS Items Consumed', data: ASM.non_rts, backgroundColor:'rgba(100,116,139,0.35)', stack:'s', borderWidth:0},
-        {label:'RTS — Assembly/Disassembly', data: ASM.rts_asm, backgroundColor:'rgba(37,99,235,0.75)', stack:'s', borderWidth:0},
-        {label:'RTS — Sales Orders (RNT/RGI)', data: ASM.rts_so, backgroundColor:'rgba(16,185,129,0.8)', stack:'s', borderWidth:0}
+        {label:'Individual Sales Revenue', data: ASM.ind_rev, backgroundColor:'rgba(37,99,235,0.7)', borderRadius:2, borderWidth:0},
+        {label:'Assembly Consumption Cost', data: ASM.asm_cost, backgroundColor:'rgba(251,146,60,0.8)', borderRadius:2, borderWidth:0}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{size:10},boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: $${ctx.raw.toLocaleString()}`}}},
+      scales:{
+        x:{ticks:{font:{size:9},maxRotation:45},grid:{display:false}},
+        y:{ticks:{font:{size:9},callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#f3f4f6'},title:{display:true,text:'Dollars ($)',font:{size:9}}}
+      }}
+  });
+
+  // 4b. Units consumed breakdown by reason code
+  new Chart(document.getElementById('asmUnitsChart'), {
+    type: 'bar',
+    data: {
+      labels: ASM.labels,
+      datasets: [
+        {label:'Assembly/Disassembly', data: ASM.asm_asm, backgroundColor:'rgba(37,99,235,0.7)', stack:'s', borderWidth:0},
+        {label:'Sales Orders (RNT/RGI)', data: ASM.asm_so, backgroundColor:'rgba(16,185,129,0.8)', stack:'s', borderWidth:0}
       ]
     },
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
